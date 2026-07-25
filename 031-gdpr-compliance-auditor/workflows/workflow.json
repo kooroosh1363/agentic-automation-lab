@@ -1,0 +1,358 @@
+{
+  "name": "031-GDPR-Compliance-Auditor",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.websiteUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "User-Agent",
+                "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+              },
+              {
+                "name": "Accept-Language",
+                "value": "en-US,en;q=0.9"
+              },
+              {
+                "name": "Accept",
+                "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "Scan Website",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = $input.first().json.data;\nconst baseUrl = $input.first().json.websiteUrl;\n\n// Extract links to Privacy Policy, Cookie Policy, Terms\nconst linkRegex = /<a[^>]+href=[\"']([^\"']+)[\"'][^>]*>([^<]*)<\\/a>/gi;\nconst links = [];\nlet match;\n\nwhile ((match = linkRegex.exec(html)) !== null) {\n  const href = match[1].toLowerCase();\n  const text = match[2].toLowerCase();\n  \n  if (href.includes('privacy') || text.includes('privacy') ||\n      href.includes('cookie') || text.includes('cookie') ||\n      href.includes('gdpr') || text.includes('data protection')) {\n    const fullUrl = href.startsWith('http') ? href : new URL(href, baseUrl).href;\n    links.push({ url: fullUrl, type: text.includes('cookie') ? 'cookie' : 'privacy' });\n  }\n}\n\n// Check for cookie consent banner\nconst hasCookieBanner = /cookie[- ]?consent|gdpr[- ]?consent|accept[- ]?cookies/i.test(html);\n\n// Check for contact form (data collection)\nconst hasContactForm = /<form[^>]*>/i.test(html);\n\nreturn [{\n  json: {\n    websiteUrl: baseUrl,\n    scannedAt: new Date().toISOString(),\n    foundLinks: links,\n    hasCookieBanner: hasCookieBanner,\n    hasContactForm: hasContactForm,\n    htmlSnippet: html.substring(0, 5000)\n  }\n}];"
+      },
+      "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "name": "Parse HTML & Extract Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.foundLinks[0].url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+      "name": "Fetch Privacy Policy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a GDPR Compliance Expert. Analyze the provided privacy policy and website data to identify GDPR violations. Return a JSON object with: compliance_score (0-100), violations (array of {type, severity: CRITICAL|HIGH|MEDIUM|LOW, description, recommendation}), missing_elements (array), and summary."
+            },
+            {
+              "role": "user",
+              "content": "=Website URL: {{ $json.websiteUrl }}\n\nPrivacy Policy Content:\n{{ $json.data }}\n\nHas Cookie Banner: {{ $('Parse HTML & Extract Data').item.json.hasCookieBanner }}\nHas Contact Form: {{ $('Parse HTML & Extract Data').item.json.hasContactForm }}\n\nAnalyze and return JSON only."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 2000,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
+      "name": "AI GDPR Analysis",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [1120, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiResponse = JSON.parse($input.first().json.message.content);\nconst violations = aiResponse.violations || [];\n\n// Categorize by severity\nconst critical = violations.filter(v => v.severity === 'CRITICAL');\nconst high = violations.filter(v => v.severity === 'HIGH');\nconst medium = violations.filter(v => v.severity === 'MEDIUM');\nconst low = violations.filter(v => v.severity === 'LOW');\n\nreturn [{\n  json: {\n    ...aiResponse,\n    websiteUrl: $('Parse HTML & Extract Data').item.json.websiteUrl,\n    scannedAt: $('Parse HTML & Extract Data').item.json.scannedAt,\n    violationCounts: {\n      critical: critical.length,\n      high: high.length,\n      medium: medium.length,\n      low: low.length\n    },\n    hasCritical: critical.length > 0,\n    criticalViolations: critical,\n    allViolations: violations\n  }\n}];"
+      },
+      "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
+      "name": "Process AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{ $json.hasCritical }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "a7b8c9d0-e1f2-3456-abcd-567890123456",
+      "name": "Check Critical Violations",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $env.CRITICAL_ALERT_EMAIL }}",
+        "subject": "=🚨 CRITICAL GDPR Violation Detected - {{ $json.websiteUrl }}",
+        "emailType": "html",
+        "html": "=<h2>🚨 Critical GDPR Compliance Alert</h2>\n<p><strong>Website:</strong> {{ $json.websiteUrl }}</p>\n<p><strong>Scanned At:</strong> {{ $json.scannedAt }}</p>\n<p><strong>Compliance Score:</strong> {{ $json.compliance_score }}/100</p>\n<h3>Critical Violations:</h3>\n<ul>{{ $json.criticalViolations.map(v => `<li><strong>${v.type}:</strong> ${v.description}<br/><em>Recommendation: ${v.recommendation}</em></li>`).join('') }}</ul>\n<p>Please take immediate action.</p>",
+        "options": {}
+      },
+      "id": "b8c9d0e1-f2a3-4567-bcde-678901234567",
+      "name": "Send Critical Alert Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1780, 200],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_YOUR_SMTP_ID",
+          "name": "SMTP Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "tableId": "gdpr_audit_results",
+        "columns": "website_url,scanned_at,compliance_score,critical_count,high_count,medium_count,low_count,has_critical,vio lations_json",
+        "values": "={{ $json.websiteUrl }},{{ $json.scannedAt }},{{ $json.compliance_score }},{{ $json.violationCounts.critical }},{{ $json.violationCounts.high }},{{ $json.violationCounts.medium }},{{ $json.violationCounts.low }},{{ $json.hasCritical }},{{ JSON.stringify($json.allViolations) }}"
+      },
+      "id": "c9d0e1f2-a3b4-5678-cdef-789012345678",
+      "name": "Save to Database",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1780, 400],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_YOUR_DB_ID",
+          "name": "PostgreSQL Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "GDPR Audit Log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Website URL": "={{ $json.websiteUrl }}",
+            "Scanned At": "={{ $json.scannedAt }}",
+            "Compliance Score": "={{ $json.compliance_score }}",
+            "Critical": "={{ $json.violationCounts.critical }}",
+            "High": "={{ $json.violationCounts.high }}",
+            "Medium": "={{ $json.violationCounts.medium }}",
+            "Low": "={{ $json.violationCounts.low }}",
+            "Status": "={{ $json.hasCritical ? 'CRITICAL' : 'NEEDS REVIEW' }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "d0e1f2a3-b4c5-6789-defa-890123456789",
+      "name": "Log to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [2000, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_GS_ID",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Scan Website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scan Website": {
+      "main": [
+        [
+          {
+            "node": "Parse HTML & Extract Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse HTML & Extract Data": {
+      "main": [
+        [
+          {
+            "node": "Fetch Privacy Policy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Privacy Policy": {
+      "main": [
+        [
+          {
+            "node": "AI GDPR Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI GDPR Analysis": {
+      "main": [
+        [
+          {
+            "node": "Process AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process AI Response": {
+      "main": [
+        [
+          {
+            "node": "Check Critical Violations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Critical Violations": {
+      "main": [
+        [
+          {
+            "node": "Send Critical Alert Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save to Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Critical Alert Email": {
+      "main": [
+        [
+          {
+            "node": "Save to Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Database": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "GDPR"
+    },
+    {
+      "name": "Compliance"
+    },
+    {
+      "name": "AI Analysis"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2026-07-26T12:00:00.000Z",
+  "versionId": "gdpr-audit-v1.0"
+}
