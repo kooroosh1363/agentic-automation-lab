@@ -1,0 +1,496 @@
+{
+  "name": "032-Dynamic-Pricing-Intelligence",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.competitor1.com/products/{{ $json.productId }}/price",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $env.COMPETITOR1_API_KEY }}"
+            },
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "Fetch Competitor 1 Price",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.competitor2.com/products/{{ $json.productId }}/price",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.COMPETITOR2_API_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "name": "Fetch Competitor 2 Price",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.competitor3.com/products/{{ $json.productId }}/price",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $env.COMPETITOR3_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+      "name": "Fetch Competitor 3 Price",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate competitor prices and calculate statistics\nconst products = [];\n\n// Process each competitor response\nfor (const item of $input.all()) {\n  const data = item.json;\n  products.push({\n    competitor: item.node.name.replace('Fetch ', '').replace(' Price', ''),\n    price: parseFloat(data.price),\n    currency: data.currency || 'USD',\n    inStock: data.inStock !== false,\n    lastUpdated: data.lastUpdated || new Date().toISOString()\n  });\n}\n\n// Calculate statistics\nconst prices = products.map(p => p.price).filter(p => !isNaN(p));\nconst avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;\nconst minPrice = Math.min(...prices);\nconst maxPrice = Math.max(...prices);\nconst medianPrice = prices.sort((a, b) => a - b)[Math.floor(prices.length / 2)];\n\n// Calculate standard deviation\nconst variance = prices.reduce((sum, p) => sum + Math.pow(p - avgPrice, 2), 0) / prices.length;\nconst stdDev = Math.sqrt(variance);\n\n// Get current product info (from trigger or previous node)\nconst productId = $('Schedule Trigger').item.json.productId || 'PROD-001';\nconst currentPrice = $('Schedule Trigger').item.json.currentPrice || 99.99;\nconst stockLevel = $('Schedule Trigger').item.json.stockLevel || 100;\nconst targetMargin = $('Schedule Trigger').item.json.targetMargin || 0.25;\n\nreturn [{\n  json: {\n    productId,\n    currentPrice,\n    stockLevel,\n    targetMargin,\n    competitorAnalysis: {\n      prices,\n      average: avgPrice,\n      minimum: minPrice,\n      maximum: maxPrice,\n      median: medianPrice,\n      stdDeviation: stdDev,\n      competitorCount: products.length,\n      competitorsInStock: products.filter(p => p.inStock).length\n    },\n    marketPosition: currentPrice < avgPrice ? 'below_market' : currentPrice > avgPrice ? 'above_market' : 'at_market',\n    priceGap: ((currentPrice - avgPrice) / avgPrice * 100).toFixed(2),\n    analyzedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
+      "name": "Calculate Price Statistics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a Dynamic Pricing Strategist AI. Analyze competitor pricing data and recommend optimal pricing strategy. Consider: market position, stock levels, profit margins, competitor availability, and price volatility. Return JSON with: recommended_price, strategy (aggressive/conservative/neutral), confidence_score (0-100), reasoning, risk_factors (array), and action (increase/decrease/maintain)."
+            },
+            {
+              "role": "user",
+              "content": "=Product ID: {{ $json.productId }}\nCurrent Price: ${{ $json.currentPrice }}\nStock Level: {{ $json.stockLevel }} units\nTarget Margin: {{ $json.targetMargin * 100 }}%\n\nCompetitor Analysis:\n- Average Price: ${{ $json.competitorAnalysis.average.toFixed(2) }}\n- Minimum Price: ${{ $json.competitorAnalysis.minimum.toFixed(2) }}\n- Maximum Price: ${{ $json.competitorAnalysis.maximum.toFixed(2) }}\n- Median Price: ${{ $json.competitorAnalysis.median.toFixed(2) }}\n- Price Std Deviation: ${{ $json.competitorAnalysis.stdDeviation.toFixed(2) }}\n- Competitors In Stock: {{ $json.competitorAnalysis.competitorsInStock }}/{{ $json.competitorAnalysis.competitorCount }}\n\nMarket Position: {{ $json.marketPosition }}\nPrice Gap from Average: {{ $json.priceGap }}%\n\nRecommend optimal pricing strategy."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.4,
+          "maxTokens": 1500,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
+      "name": "AI Pricing Strategy",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [900, 400],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI response and prepare decision data\nconst aiResponse = JSON.parse($input.first().json.message.content);\nconst inputData = $('Calculate Price Statistics').item.json;\n\nconst recommendedPrice = parseFloat(aiResponse.recommended_price);\nconst currentPrice = inputData.currentPrice;\nconst priceChange = recommendedPrice - currentPrice;\nconst priceChangePercent = ((priceChange / currentPrice) * 100).toFixed(2);\n\n// Determine action urgency\nlet urgency = 'low';\nif (Math.abs(priceChangePercent) > 10) urgency = 'high';\nelse if (Math.abs(priceChangePercent) > 5) urgency = 'medium';\n\nreturn [{\n  json: {\n    productId: inputData.productId,\n    currentPrice,\n    recommendedPrice,\n    priceChange,\n    priceChangePercent: parseFloat(priceChangePercent),\n    strategy: aiResponse.strategy,\n    confidence: aiResponse.confidence_score,\n    reasoning: aiResponse.reasoning,\n    riskFactors: aiResponse.risk_factors || [],\n    action: aiResponse.action,\n    urgency,\n    needsAction: Math.abs(priceChangePercent) > 2, // Only act if change > 2%\n    marketData: inputData.competitorAnalysis,\n    analyzedAt: inputData.analyzedAt,\n    decisionMadeAt: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "a7b8c9d0-e1f2-3456-abcd-567890123456",
+      "name": "Process AI Recommendation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{ $json.needsAction }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "b8c9d0e1-f2a3-4567-bcde-678901234567",
+      "name": "Check If Action Needed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 400]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "tableId": "pricing_history",
+        "columns": "product_id,current_price,recommended_price,price_change_percent,strategy,confidence,action,urgency,competitor_avg,analyzed_at",
+        "values": "={{ $json.productId }},{{ $json.currentPrice }},{{ $json.recommendedPrice }},{{ $json.priceChangePercent }},{{ $json.strategy }},{{ $json.confidence }},{{ $json.action }},{{ $json.urgency }},{{ $json.marketData.average }},{{ $json.analyzedAt }}"
+      },
+      "id": "c9d0e1f2-a3b4-5678-cdef-789012345678",
+      "name": "Save to Database",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1560, 300],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_YOUR_POSTGRES_ID",
+          "name": "PostgreSQL Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "={{ $env.SLACK_CHANNEL }}",
+        "text": "=🎯 *Dynamic Pricing Alert*\n\n*Product:* {{ $json.productId }}\n*Current Price:* ${{ $json.currentPrice }}\n*Recommended:* ${{ $json.recommendedPrice }}\n*Change:* {{ $json.priceChangePercent }}%\n\n*Strategy:* {{ $json.strategy }}\n*Confidence:* {{ $json.confidence }}%\n*Urgency:* {{ $json.urgency }}\n\n*Reasoning:* {{ $json.reasoning }}\n\n*Risk Factors:* {{ $json.riskFactors.join(', ') }}",
+        "otherOptions": {}
+      },
+      "id": "d0e1f2a3-b4c5-6789-defa-890123456789",
+      "name": "Notify Team via Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1560, 500],
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_SLACK_ID",
+          "name": "Slack API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Pricing Intelligence",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Product ID": "={{ $json.productId }}",
+            "Current Price": "={{ $json.currentPrice }}",
+            "Recommended Price": "={{ $json.recommendedPrice }}",
+            "Change %": "={{ $json.priceChangePercent }}",
+            "Strategy": "={{ $json.strategy }}",
+            "Confidence": "={{ $json.confidence }}",
+            "Action": "={{ $json.action }}",
+            "Urgency": "={{ $json.urgency }}",
+            "Timestamp": "={{ $json.decisionMadeAt }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "e1f2a3b4-c5d6-7890-efab-901234567890",
+      "name": "Log to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [1780, 400],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_GS_ID",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{ $json.urgency }}",
+              "rightValue": "high",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "f2a3b4c5-d6e7-8901-fabc-012345678901",
+      "name": "Check High Urgency",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $env.PRICE_ALERT_EMAIL }}",
+        "subject": "=🚨 URGENT: Price Adjustment Needed - {{ $json.productId }}",
+        "emailType": "html",
+        "html": "=<h2>🚨 Urgent Pricing Alert</h2>\n<p><strong>Product:</strong> {{ $json.productId }}</p>\n<p><strong>Current Price:</strong> ${{ $json.currentPrice }}</p>\n<p><strong>Recommended Price:</strong> ${{ $json.recommendedPrice }}</p>\n<p><strong>Change Required:</strong> {{ $json.priceChangePercent }}%</p>\n<p><strong>Strategy:</strong> {{ $json.strategy }}</p>\n<p><strong>Confidence:</strong> {{ $json.confidence }}%</p>\n<h3>AI Reasoning:</h3>\n<p>{{ $json.reasoning }}</p>\n<h3>Risk Factors:</h3>\n<ul>{{ $json.riskFactors.map(r => `<li>${r}</li>`).join('') }}</ul>\n<p>Please review and approve the price change immediately.</p>",
+        "options": {}
+      },
+      "id": "a3b4c5d6-e7f8-9012-abcd-123456789012",
+      "name": "Send Urgent Email Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [2000, 200],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_YOUR_SMTP_ID",
+          "name": "SMTP Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Competitor 1 Price",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Competitor 2 Price",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Competitor 3 Price",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Competitor 1 Price": {
+      "main": [
+        [
+          {
+            "node": "Calculate Price Statistics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Competitor 2 Price": {
+      "main": [
+        [
+          {
+            "node": "Calculate Price Statistics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Competitor 3 Price": {
+      "main": [
+        [
+          {
+            "node": "Calculate Price Statistics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Price Statistics": {
+      "main": [
+        [
+          {
+            "node": "AI Pricing Strategy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Pricing Strategy": {
+      "main": [
+        [
+          {
+            "node": "Process AI Recommendation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process AI Recommendation": {
+      "main": [
+        [
+          {
+            "node": "Check If Action Needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Action Needed": {
+      "main": [
+        [
+          {
+            "node": "Save to Database",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Database": {
+      "main": [
+        [
+          {
+            "node": "Notify Team via Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Team via Slack": {
+      "main": [
+        [
+          {
+            "node": "Check High Urgency",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check High Urgency": {
+      "main": [
+        [
+          {
+            "node": "Send Urgent Email Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Urgent Email Alert": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Dynamic Pricing"
+    },
+    {
+      "name": "AI Strategy"
+    },
+    {
+      "name": "E-commerce"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-07-26T14:00:00.000Z",
+  "versionId": "dynamic-pricing-v1.0"
+}
