@@ -1,0 +1,424 @@
+{
+  "name": "Smart Supply Chain & Inventory Management",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        1072,
+        80
+      ],
+      "id": "85761655-98a7-4906-85e4-1f5883cf1a26",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "jat2cvPe6JgqMWta",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=content message:\n{{ $json.snippet }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=\nYou are a personal assistant tasked with replying to my emails and categorizing incoming messages based on predefined labels.\nResponse Guidelines:\nMaintain a formal and polite tone in all email responses.\nAlways thank the sender at the end of your response.\nReject any work-related emails that do not align with my professional goals.\nReject any personal matters that do not align with my personal goals and recreational interests.\nFor scheduling requests that align with my goals, only give a positive response if I am available at the proposed time. If I am not available, suggest an alternative free time slot based on my calendar.\nAvailable Tools:\ncalendar: This tool is used to check my schedule and availability. You must check my calendar before replying to any email to verify the requested date and time.\ngoals: This tool contains my list of goals. You must check my goals list through this tool before replying to any email.\nOutput Requirements:\nYour output must strictly and only include the drafted email response and the categorization of the received email.\nThe categories are: work and personal.\nIf the email belongs to the work category, the label value must be work.\nIf the email belongs to the personal category, the label value must be personal.\nOutput Format:\nYour output must strictly follow this exact JSON format:\n{\n  \"response\": \"The text of the email response\",\n  \"label\": \"work or personal\"\n}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1296,
+        80
+      ],
+      "id": "cfcf6084-32d5-471f-9679-65921d446a10",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatMoonshot",
+      "typeVersion": 1.1,
+      "position": [
+        1152,
+        288
+      ],
+      "id": "123aeb68-64e2-4fe4-a4af-4236a22936e9",
+      "name": "Moonshot Kimi Chat Model",
+      "credentials": {
+        "moonshotApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "for my checking my calendar",
+        "resource": "calendar",
+        "calendar": {
+          "__rl": true,
+          "value": "rpeyman074@gmail.com",
+          "mode": "list",
+          "cachedResultName": "rpeyman074@gmail.com"
+        },
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('After', ``, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1344,
+        368
+      ],
+      "id": "77477c90-00ea-47a4-9c31-8933e555f0e8",
+      "name": "calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "zebrIzIIUf3OxUD9",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "this tool is for my goal",
+        "resource": "base",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 2.2,
+      "position": [
+        1520,
+        336
+      ],
+      "id": "225d0819-fcc7-47d6-9e2d-f7d46b1b1c15",
+      "name": "goals",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "XZIMSl43pPVcekI8",
+          "name": "Airtable Personal Access Token account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\"response\" : \"ggggggggggggggggggggg\" ,\n  \"lable\" : \"fffffffffffffffffff\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1696,
+        304
+      ],
+      "id": "42fd5a83-e868-4feb-ab89-d64c3a8d14bb",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.lable }}",
+                    "rightValue": "work",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "236d680d-af90-4c63-a292-89b1b840d1c8"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "work"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "b7db53b3-9538-4e51-ab48-736df50bdf3e",
+                    "leftValue": "={{ $json.output.lable }}",
+                    "rightValue": "personal",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "personal work"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1648,
+        80
+      ],
+      "id": "0e727d25-cb26-41cf-834e-898744e87fae",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "test",
+        "message": "={{ $json.output.response }}",
+        "options": {
+          "threadId": "={{ $('Gmail Trigger').item.json.threadId }}",
+          "sendTo": "={{ $('Gmail Trigger').item.json.From }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1904,
+        -128
+      ],
+      "id": "a67c55ff-164f-4811-85ff-30d38a7573a7",
+      "name": "Create a draft",
+      "webhookId": "26770956-d211-4029-b5ce-3a08db2b5d6a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "jat2cvPe6JgqMWta",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "labelIds": [
+          "Label_2668114324484449474"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2112,
+        -128
+      ],
+      "id": "90a54b38-3790-4f1c-b6cf-053988f4be96",
+      "name": "Add label to message",
+      "webhookId": "a35f268c-943b-4aeb-9e5e-2cd32bfab266",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "jat2cvPe6JgqMWta",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "test",
+        "message": "={{ $json.output.response }}",
+        "options": {
+          "threadId": "={{ $('Gmail Trigger').item.json.threadId }}",
+          "sendTo": "={{ $('Gmail Trigger').item.json.From }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1904,
+        256
+      ],
+      "id": "73332c25-e482-48be-a307-59fac331974a",
+      "name": "Create a draft1",
+      "webhookId": "26770956-d211-4029-b5ce-3a08db2b5d6a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "jat2cvPe6JgqMWta",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "labelIds": [
+          "Label_8812533541204923894"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2112,
+        256
+      ],
+      "id": "140ba7fb-c9fc-4357-afa1-b192e10aa821",
+      "name": "Add label to message1",
+      "webhookId": "a35f268c-943b-4aeb-9e5e-2cd32bfab266",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "jat2cvPe6JgqMWta",
+          "name": "Gmail account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Moonshot Kimi Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "goals": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create a draft1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a draft": {
+      "main": [
+        [
+          {
+            "node": "Add label to message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a draft1": {
+      "main": [
+        [
+          {
+            "node": "Add label to message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "db9fddcf-7ffa-4121-9d04-95d5645ee2cc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "41a0c1787acccb81ecf7f7bdda4ac5ff125588d96b0c6132cc398eddfb654802"
+  },
+  "nodeGroups": [],
+  "id": "tTWJmUAeVk0ti1up",
+  "tags": []
+}

@@ -1,0 +1,469 @@
+{
+  "name": "weather report",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "weather report",
+        "formDescription": "this form provide you with the city's weather report",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "choose your city",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "tehran"
+                  },
+                  {
+                    "option": "shiraz "
+                  },
+                  {
+                    "option": "mashhad"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -1184,
+        -176
+      ],
+      "id": "218004f6-3df3-47a2-8a58-9c638ecf6d1e",
+      "name": "On form submission",
+      "webhookId": "c0ea41f8-ee68-44c9-a059-d89a39142b43"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.open-meteo.com/v1/forecast?latitude={{ $json.Latitude }}&longitude={{ $json.Longitude }}&hourly=temperature_2m",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -192,
+        -176
+      ],
+      "id": "5997618c-6f1c-405a-9d5b-265873909c78",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json['choose your city'] }}",
+                    "rightValue": "tehran",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "9bbc6b52-f910-4e8d-a4f1-4343bf4718de"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "tehran"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "774cfbd9-a217-46ca-b299-dafafc7bff6e",
+                    "leftValue": "={{ $json['choose your city'] }}",
+                    "rightValue": "shiraz ",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "shiraz "
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "e21eab0f-9d6f-4453-bbaf-d9d1fd1a77bb",
+                    "leftValue": "={{ $json['choose your city'] }}",
+                    "rightValue": "mashhad",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "mashhad"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -832,
+        -192
+      ],
+      "id": "496195f0-83bb-4d92-adc4-9b90b75ab7db",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f705b86d-8473-4864-b1c7-832e3c554825",
+              "name": "Latitude",
+              "value": 35.6892,
+              "type": "number"
+            },
+            {
+              "id": "f6259f5e-ef0c-441d-ab59-e1e7505b404d",
+              "name": "Longitude",
+              "value": 51.389,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -512,
+        -496
+      ],
+      "id": "afecb446-5f87-4c2c-9033-1abba30843d7",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f705b86d-8473-4864-b1c7-832e3c554825",
+              "name": "Latitude",
+              "value": 29.5918,
+              "type": "number"
+            },
+            {
+              "id": "f6259f5e-ef0c-441d-ab59-e1e7505b404d",
+              "name": "Longitude",
+              "value": 52.5837,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -512,
+        -176
+      ],
+      "id": "55069242-dd79-4133-9e56-5f67fc046aa2",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f705b86d-8473-4864-b1c7-832e3c554825",
+              "name": "Latitude",
+              "value": 36.2605,
+              "type": "number"
+            },
+            {
+              "id": "f6259f5e-ef0c-441d-ab59-e1e7505b404d",
+              "name": "Longitude",
+              "value": 59.6168,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -512,
+        144
+      ],
+      "id": "bbeeb777-47f6-4fd9-a792-62ff1d9b5008",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst times = data.hourly.time;\nconst temperatures = data.hourly.temperature_2m;\n\n// تاریخ اولین رکورد (مثلاً 2026-07-08)\nconst targetDate = times[0].split(\"T\")[0];\n\nlet maxTemp = -Infinity;\nlet minTemp = Infinity;\nlet maxTime = \"\";\nlet minTime = \"\";\n\nfor (let i = 0; i < times.length; i++) {\n    if (!times[i].startsWith(targetDate)) {\n        break; // فقط روز اول بررسی شود\n    }\n\n    const temp = temperatures[i];\n\n    if (temp > maxTemp) {\n        maxTemp = temp;\n        maxTime = times[i];\n    }\n\n    if (temp < minTemp) {\n        minTemp = temp;\n        minTime = times[i];\n    }\n}\n\nreturn [\n    {\n        json: {\n            date: targetDate,\n            max_temperature: maxTemp,\n            max_temperature_time: maxTime,\n            min_temperature: minTemp,\n            min_temperature_time: minTime\n        }\n    }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        -176
+      ],
+      "id": "11f672f5-1e5d-4070-8701-256396ebfc4e",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appMUJ2ZscfwRWtrb",
+          "mode": "list",
+          "cachedResultName": "first object",
+          "cachedResultUrl": "https://airtable.com/appMUJ2ZscfwRWtrb"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbljCg5RlQlpmosMz",
+          "mode": "list",
+          "cachedResultName": "Table 1",
+          "cachedResultUrl": "https://airtable.com/appMUJ2ZscfwRWtrb/tbljCg5RlQlpmosMz"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "tempeture": 0,
+            "low": "={{ $json.min_temperature }}",
+            "high": "={{ $json.max_temperature }}",
+            "city": "={{ $('On form submission').item.json['choose your city'] }}"
+          },
+          "matchingColumns": [
+            "city"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "tempeture",
+              "displayName": "tempeture",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "low",
+              "displayName": "low",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "high",
+              "displayName": "high",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        272,
+        -176
+      ],
+      "id": "986ee33f-8604-4368-8fc0-13a94981a461",
+      "name": "Update record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "KWCOc1QI91L3bpx3",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Update record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "d5554611-de27-4e71-b2e6-ba296ecd72b1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "41a0c1787acccb81ecf7f7bdda4ac5ff125588d96b0c6132cc398eddfb654802"
+  },
+  "nodeGroups": [],
+  "id": "fcDZybHqM5jhm5Cq",
+  "tags": []
+}

@@ -1,0 +1,382 @@
+{
+  "name": "budget form",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "فرم درخواست همکاری ",
+        "formDescription": "از این فرم میتوانید سفارش پروژه بدهید ",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "نام و نام خانوادگی",
+              "placeholder": "ارش کمانگیر",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "توضیحات پروژه",
+              "fieldType": "textarea",
+              "placeholder": "توضیحات پروژه ی خود را اینجا بنویسید"
+            },
+            {
+              "fieldLabel": "بودجه پروژه ",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "زیر ده میلیون تومان "
+                  },
+                  {
+                    "option": "ده تا صد میلیون تومان "
+                  },
+                  {
+                    "option": "بیشتر از صد میلیون تومان  "
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "ایمیل",
+              "fieldType": "email"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -880,
+        -240
+      ],
+      "id": "2a7eb16e-ddae-41d2-a00a-44a311e7a91e",
+      "name": "form",
+      "webhookId": "cf4adfc1-9a8f-4957-9251-cc17b4544c75"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json['بودجه پروژه '] }}",
+                    "rightValue": "زیر ده میلیون تومان ",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "dee25f06-3faf-4ad7-a058-b5c9348ac298"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "بودجه ی کم "
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "9de72d33-7f0b-43f6-9c4d-286dbd954836",
+                    "leftValue": "={{ $json['بودجه پروژه '] }}",
+                    "rightValue": "ده تا صد میلیون تومان ",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "بودجه ی متوسط "
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "c9009334-a61b-4c1a-b87e-c37a889b9aca",
+                    "leftValue": "={{ $json['بودجه پروژه '] }}",
+                    "rightValue": "بیشتر از صد میلیون تومان  ",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "بودجه ی زیاد "
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -640,
+        -256
+      ],
+      "id": "00e5183c-ef20-4bbf-bb15-0175c94c154c",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "Label_1373775985041629336"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        16,
+        -240
+      ],
+      "id": "f32fb56a-a9ee-4b28-9445-3d19a7743889",
+      "name": "Add label to message",
+      "webhookId": "34367589-868d-49ef-b76e-4a9d8abcb6bd",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "hTaeQMltC3RxoiLX",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "Label_9140239929797298210"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -176,
+        -432
+      ],
+      "id": "b64ae10c-6ecb-4c59-aec8-2e89a8097df2",
+      "name": "Add label to message1",
+      "webhookId": "34367589-868d-49ef-b76e-4a9d8abcb6bd",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "hTaeQMltC3RxoiLX",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "Label_4042644945087603458"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -176,
+        -16
+      ],
+      "id": "32650e0e-e850-460d-97b1-16d77982a8c7",
+      "name": "Add label to message2",
+      "webhookId": "34367589-868d-49ef-b76e-4a9d8abcb6bd",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "hTaeQMltC3RxoiLX",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "rpeyman074@gmail.com",
+        "subject": "=درخواست پروژه از طرف : {{ $json['نام و نام خانوادگی'] }}",
+        "emailType": "text",
+        "message": "=نام مشتری :   {{ $json['نام و نام خانوادگی'] }}\nتوضیحات مشتری :{{ $json['توضیحات پروژه'] }}\nایمیل مشتری :{{ $json['ایمیل'] }}\nبودجه مشتری :{{ $json['بودجه پروژه '] }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -384,
+        -16
+      ],
+      "id": "4351cbae-9d92-4c71-bc82-3415321e7966",
+      "name": "ارسال ایمیل بودجه ی زیاد",
+      "webhookId": "8393caa9-5f30-45eb-97e5-9253b0e0d84b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "hTaeQMltC3RxoiLX",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "rpeyman074@gmail.com",
+        "subject": "=درخواست پروژه از طرف : {{ $json['نام و نام خانوادگی'] }}",
+        "emailType": "text",
+        "message": "=نام مشتری :   {{ $json['نام و نام خانوادگی'] }}\nتوضیحات مشتری :{{ $json['توضیحات پروژه'] }}\nایمیل مشتری :{{ $json['ایمیل'] }}\nبودجه مشتری :{{ $json['بودجه پروژه '] }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -192,
+        -240
+      ],
+      "id": "25912014-21db-49ce-b0bf-6c83c0815c8d",
+      "name": "ارسال ایمیل بودجه متوسط",
+      "webhookId": "8393caa9-5f30-45eb-97e5-9253b0e0d84b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "hTaeQMltC3RxoiLX",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "rpeyman074@gmail.com",
+        "subject": "=درخواست پروژه از طرف : {{ $json['نام و نام خانوادگی'] }}",
+        "emailType": "text",
+        "message": "=نام مشتری :   {{ $json['نام و نام خانوادگی'] }}\nتوضیحات مشتری :{{ $json['توضیحات پروژه'] }}\nایمیل مشتری :{{ $json['ایمیل'] }}\nبودجه مشتری :{{ $json['بودجه پروژه '] }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -384,
+        -432
+      ],
+      "id": "8f5443a0-8ba4-41c2-982e-010807d9bd3a",
+      "name": "ارسال ایمیل بودجه ی کم",
+      "webhookId": "8393caa9-5f30-45eb-97e5-9253b0e0d84b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "hTaeQMltC3RxoiLX",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "form": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "ارسال ایمیل بودجه ی کم",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ارسال ایمیل بودجه متوسط",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ارسال ایمیل بودجه ی زیاد",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ارسال ایمیل بودجه ی زیاد": {
+      "main": [
+        [
+          {
+            "node": "Add label to message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ارسال ایمیل بودجه متوسط": {
+      "main": [
+        [
+          {
+            "node": "Add label to message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ارسال ایمیل بودجه ی کم": {
+      "main": [
+        [
+          {
+            "node": "Add label to message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "5a222d85-c981-44c8-816a-cd53ee9381f8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "41a0c1787acccb81ecf7f7bdda4ac5ff125588d96b0c6132cc398eddfb654802"
+  },
+  "nodeGroups": [],
+  "id": "PfjhFhfIBdR4gzl2",
+  "tags": []
+}
