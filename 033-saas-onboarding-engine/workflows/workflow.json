@@ -1,0 +1,386 @@
+{
+  "name": "033-SaaS-Onboarding-Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "saas-onboarding-webhook",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "saas-onboarding-001"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse incoming webhook data\nconst body = $input.first().json.body || $input.first().json;\n\nconst companyName = body.company_name || body.companyName;\nconst industry = body.industry || 'General';\nconst adminEmail = body.admin_email || body.adminEmail;\nconst adminName = body.admin_name || body.adminName;\nconst planType = body.plan_type || body.plan || 'Pro';\nconst employeeCount = parseInt(body.employee_count || body.employeeCount || '10');\n\n// Generate a unique tenant ID\nconst tenantId = companyName.toLowerCase().replace(/\\s+/g, '-') + '-' + Date.now().toString().slice(-4);\n\nreturn [{\n  json: {\n    tenantId,\n    companyName,\n    industry,\n    adminEmail,\n    adminName,\n    planType,\n    employeeCount,\n    createdAt: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "Parse & Prepare Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "tableId": "tenants",
+        "columns": "tenant_id,company_name,industry,admin_email,admin_name,plan_type,employee_count,created_at,status",
+        "values": "={{ $json.tenantId }},{{ $json.companyName }},{{ $json.industry }},{{ $json.adminEmail }},{{ $json.adminName }},{{ $json.planType }},{{ $json.employeeCount }},{{ $json.createdAt }},onboarding_started"
+      },
+      "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "name": "Create Tenant in DB",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [680, 300],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_YOUR_POSTGRES_ID",
+          "name": "PostgreSQL Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a SaaS Onboarding Expert. Create a customized 30-day onboarding plan for a new enterprise client. Return a JSON object with: welcome_message (personalized), week_1_goals (array), week_2_goals (array), week_3_goals (array), week_4_goals (array), recommended_resources (array), and key_success_metrics (array)."
+            },
+            {
+              "role": "user",
+              "content": "=Company Name: {{ $json.companyName }}\nIndustry: {{ $json.industry }}\nPlan Type: {{ $json.planType }}\nEmployee Count: {{ $json.employeeCount }}\nAdmin Name: {{ $json.adminName }}\n\nGenerate a comprehensive 30-day onboarding plan in JSON format."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+      "name": "AI Generate Onboarding Plan",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [900, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/conversations.create",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.SLACK_BOT_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"client-{{ $json.tenantId }}\",\n  \"is_private\": true\n}",
+        "options": {}
+      },
+      "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
+      "name": "Create Slack Channel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/conversations.invite",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.SLACK_BOT_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"channel\": \"{{ $('Create Slack Channel').item.json.channel.id }}\",\n  \"users\": \"{{ $env.CUSTOMER_SUCCESS_MANAGER_SLACK_ID }}\"\n}",
+        "options": {}
+      },
+      "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
+      "name": "Invite CSM to Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_NOTION_DB_ID",
+          "mode": "id"
+        },
+        "title": "={{ $('Parse & Prepare Data').item.json.companyName }} - Onboarding",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status",
+              "value": "In Progress"
+            },
+            {
+              "key": "Tenant ID",
+              "value": "={{ $('Parse & Prepare Data').item.json.tenantId }}"
+            }
+          ]
+        },
+        "blockUi": {
+          "blockValues": [
+            {
+              "type": "heading_2",
+              "textContent": "30-Day Onboarding Plan"
+            },
+            {
+              "type": "paragraph",
+              "textContent": "=Generated by AI for {{ $('Parse & Prepare Data').item.json.companyName }} ({{ $('Parse & Prepare Data').item.json.industry }})"
+            },
+            {
+              "type": "bulleted_list_item",
+              "textContent": "=Week 1: {{ JSON.parse($('AI Generate Onboarding Plan').item.json.message.content).week_1_goals.join(', ') }}"
+            },
+            {
+              "type": "bulleted_list_item",
+              "textContent": "=Week 2: {{ JSON.parse($('AI Generate Onboarding Plan').item.json.message.content).week_2_goals.join(', ') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a7b8c9d0-e1f2-3456-abcd-567890123456",
+      "name": "Create Notion Page",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1120, 400],
+      "credentials": {
+        "notionApi": {
+          "id": "REPLACE_WITH_YOUR_NOTION_ID",
+          "name": "Notion API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{ $('Create Slack Channel').item.json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "b8c9d0e1-f2a3-4567-bcde-678901234567",
+      "name": "Check Slack Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Parse & Prepare Data').item.json.adminEmail }}",
+        "subject": "=🚀 Welcome to [Your SaaS]! Your Onboarding Plan is Ready",
+        "emailType": "html",
+        "html": "=<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>\n  <h1 style='color: #4A90E2;'>Welcome aboard, {{ $('Parse & Prepare Data').item.json.adminName }}! 🎉</h1>\n  <p>We are thrilled to have <strong>{{ $('Parse & Prepare Data').item.json.companyName }}</strong> join us on the {{ $('Parse & Prepare Data').item.json.planType }} plan.</p>\n  \n  <h2>Your Personalized 30-Day Onboarding Plan</h2>\n  <p>Our AI has crafted a custom roadmap for your team in the <strong>{{ $('Parse & Prepare Data').item.json.industry }}</strong> industry:</p>\n  \n  <h3>Week 1 Focus:</h3>\n  <ul>{{ JSON.parse($('AI Generate Onboarding Plan').item.json.message.content).week_1_goals.map(g => `<li>${g}</li>`).join('') }}</ul>\n  \n  <h3>Week 2 Focus:</h3>\n  <ul>{{ JSON.parse($('AI Generate Onboarding Plan').item.json.message.content).week_2_goals.map(g => `<li>${g}</li>`).join('') }}</ul>\n  \n  <p>Your dedicated Customer Success Manager has been assigned and a private Slack channel has been created for your team.</p>\n  \n  <p>Best regards,<br><strong>The [Your SaaS] Team</strong></p>\n</div>",
+        "options": {}
+      },
+      "id": "c9d0e1f2-a3b4-5678-cdef-789012345678",
+      "name": "Send Welcome Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1780, 200],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_YOUR_SMTP_ID",
+          "name": "SMTP Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $env.INTERNAL_ALERT_EMAIL }}",
+        "subject": "=⚠️ Onboarding Error: Slack Channel Creation Failed for {{ $('Parse & Prepare Data').item.json.companyName }}",
+        "emailType": "text",
+        "text": "=The automated onboarding process for {{ $('Parse & Prepare Data').item.json.companyName }} (Tenant ID: {{ $('Parse & Prepare Data').item.json.tenantId }}) encountered an error while creating the Slack channel.\n\nPlease check the n8n execution logs and manually create the channel if necessary.\n\nWebhook Payload: {{ JSON.stringify($input.first().json) }}",
+        "options": {}
+      },
+      "id": "d0e1f2a3-b4c5-6789-defa-890123456789",
+      "name": "Send Error Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1780, 400],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_YOUR_SMTP_ID",
+          "name": "SMTP Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse & Prepare Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Prepare Data": {
+      "main": [
+        [
+          {
+            "node": "Create Tenant in DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Tenant in DB": {
+      "main": [
+        [
+          {
+            "node": "AI Generate Onboarding Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Generate Onboarding Plan": {
+      "main": [
+        [
+          {
+            "node": "Create Slack Channel",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Notion Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Slack Channel": {
+      "main": [
+        [
+          {
+            "node": "Invite CSM to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invite CSM to Slack": {
+      "main": [
+        [
+          {
+            "node": "Check Slack Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Notion Page": {
+      "main": [
+        [
+          {
+            "node": "Check Slack Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Slack Success": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "SaaS"
+    },
+    {
+      "name": "Onboarding"
+    },
+    {
+      "name": "AI Automation"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-07-27T10:00:00.000Z",
+  "versionId": "saas-onboarding-v1.0"
+}
