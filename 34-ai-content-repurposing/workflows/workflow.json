@@ -1,0 +1,345 @@
+{
+  "name": "34-AI-Content-Repurposing-Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://www.youtube.com/feeds/videos.xml?channel_id={{ $env.YOUTUBE_CHANNEL_ID }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "RSS Feed Trigger",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract video ID and prepare for transcription\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const videoUrl = item.json.link || item.json.url;\n  const videoId = videoUrl.match(/(?:v=|\\/)([0-9A-Za-z_-]{11})/)?.[1];\n  const title = item.json.title;\n  const publishedAt = item.json.isoDate || item.json.pubDate;\n  \n  if (videoId) {\n    results.push({\n      json: {\n        videoId,\n        title,\n        publishedAt,\n        videoUrl,\n        thumbnailUrl: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`\n      }\n    });\n  }\n}\n\nreturn results;"
+      },
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "Extract Video Info",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://www.googleapis.com/youtube/v3/captions?videoId={{ $json.videoId }}&part=snippet",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.YOUTUBE_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "name": "Fetch Video Transcript",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a Content Repurposing Expert. Analyze the video transcript and create 5 different content formats optimized for each platform. Return JSON with: twitter_post (280 chars max), linkedin_post (professional tone), instagram_caption (with hashtags), newsletter_snippet (engaging summary), blog_article (800 words, SEO optimized), and image_prompt (for DALL-E thumbnail generation)."
+            },
+            {
+              "role": "user",
+              "content": "=Video Title: {{ $('Extract Video Info').item.json.title }}\nPublished At: {{ $('Extract Video Info').item.json.publishedAt }}\n\nTranscript:\n{{ $json.items[0].snippet.text || 'Transcript not available' }}\n\nCreate 5 platform-optimized content pieces and an image generation prompt."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 3000,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+      "name": "AI Generate Multi-Platform Content",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [900, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "dall-e-3",
+          "mode": "list",
+          "cachedResultName": "DALL-E 3"
+        },
+        "prompt": "=Generate a professional, eye-catching thumbnail image for a YouTube video. Style: Modern, clean, high contrast. Content: {{ JSON.parse($('AI Generate Multi-Platform Content').item.json.message.content).image_prompt }}",
+        "size": "1024x1024",
+        "quality": "hd",
+        "options": {}
+      },
+      "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
+      "name": "Generate Thumbnail with DALL-E",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [1120, 200],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "post",
+        "title": "={{ $('Extract Video Info').item.json.title }}",
+        "content": "={{ JSON.parse($('AI Generate Multi-Platform Content').item.json.message.content).blog_article }}",
+        "status": "draft",
+        "additionalFields": {
+          "categories": [1],
+          "tags": ["AI", "Automation", "Content"],
+          "featured_media_url": "={{ $('Generate Thumbnail with DALL-E').item.json.data[0].url }}"
+        }
+      },
+      "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
+      "name": "Publish to WordPress",
+      "type": "n8n-nodes-base.wordpress",
+      "typeVersion": 1,
+      "position": [1340, 200],
+      "credentials": {
+        "wordpressApi": {
+          "id": "REPLACE_WITH_YOUR_WORDPRESS_ID",
+          "name": "WordPress API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_NOTION_DB_ID",
+          "mode": "id"
+        },
+        "title": "={{ $('Extract Video Info').item.json.title }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status",
+              "value": "Published"
+            },
+            {
+              "key": "Platform",
+              "value": "Multi-Channel"
+            },
+            {
+              "key": "Publish Date",
+              "value": "={{ $('Extract Video Info').item.json.publishedAt }}"
+            }
+          ]
+        },
+        "blockUi": {
+          "blockValues": [
+            {
+              "type": "heading_2",
+              "textContent": "Twitter Post"
+            },
+            {
+              "type": "paragraph",
+              "textContent": "={{ JSON.parse($('AI Generate Multi-Platform Content').item.json.message.content).twitter_post }}"
+            },
+            {
+              "type": "heading_2",
+              "textContent": "LinkedIn Post"
+            },
+            {
+              "type": "paragraph",
+              "textContent": "={{ JSON.parse($('AI Generate Multi-Platform Content').item.json.message.content).linkedin_post }}"
+            },
+            {
+              "type": "heading_2",
+              "textContent": "Instagram Caption"
+            },
+            {
+              "type": "paragraph",
+              "textContent": "={{ JSON.parse($('AI Generate Multi-Platform Content').item.json.message.content).instagram_caption }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a7b8c9d0-e1f2-3456-abcd-567890123456",
+      "name": "Log to Notion Content Calendar",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1340, 400],
+      "credentials": {
+        "notionApi": {
+          "id": "REPLACE_WITH_YOUR_NOTION_ID",
+          "name": "Notion API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "={{ $env.SLACK_CONTENT_TEAM_CHANNEL }}",
+        "text": "=✅ *New Content Published!*\n\n*Title:* {{ $('Extract Video Info').item.json.title }}\n*Published:* {{ $('Extract Video Info').item.json.publishedAt }}\n\n*Twitter:* {{ JSON.parse($('AI Generate Multi-Platform Content').item.json.message.content).twitter_post }}\n\n*LinkedIn:* {{ JSON.parse($('AI Generate Multi-Platform Content').item.json.message.content).linkedin_post }}\n\n*Instagram Caption:* {{ JSON.parse($('AI Generate Multi-Platform Content').item.json.message.content).instagram_caption }}\n\n*Blog Article:* Published to WordPress (Draft)\n\n*Thumbnail:* {{ $('Generate Thumbnail with DALL-E').item.json.data[0].url }}\n\nPlease review and approve for final publishing.",
+        "otherOptions": {
+          "attachments": [
+            {
+              "image_url": "={{ $('Generate Thumbnail with DALL-E').item.json.data[0].url }}"
+            }
+          ]
+        }
+      },
+      "id": "b8c9d0e1-f2a3-4567-bcde-678901234567",
+      "name": "Notify Content Team on Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1560, 300],
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_SLACK_ID",
+          "name": "Slack API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "RSS Feed Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Video Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Video Info": {
+      "main": [
+        [
+          {
+            "node": "Fetch Video Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Video Transcript": {
+      "main": [
+        [
+          {
+            "node": "AI Generate Multi-Platform Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Generate Multi-Platform Content": {
+      "main": [
+        [
+          {
+            "node": "Generate Thumbnail with DALL-E",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Publish to WordPress",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log to Notion Content Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Thumbnail with DALL-E": {
+      "main": [
+        [
+          {
+            "node": "Publish to WordPress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish to WordPress": {
+      "main": [
+        [
+          {
+            "node": "Notify Content Team on Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Notion Content Calendar": {
+      "main": [
+        [
+          {
+            "node": "Notify Content Team on Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Content Automation"
+    },
+    {
+      "name": "AI Repurposing"
+    },
+    {
+      "name": "Multi-Platform"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-07-27T14:00:00.000Z",
+  "versionId": "content-repurposing-v1.0"
+}
