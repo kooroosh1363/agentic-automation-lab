@@ -1,0 +1,342 @@
+{
+  "name": "35-AI-Multilingual-Support-RAG",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "support-ticket-webhook",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "support-ticket-001"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse incoming ticket data\nconst body = $input.first().json.body || $input.first().json;\n\nreturn [{\n  json: {\n    ticketId: body.ticket_id || 'TICKET-' + Date.now(),\n    customerEmail: body.customer_email || body.email,\n    customerName: body.customer_name || body.name,\n    ticketContent: body.content || body.message,\n    receivedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "Parse Ticket Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a Customer Support Analyst. Analyze the support ticket. Return a JSON object with: 'language' (e.g., en, fa, es), 'sentiment' (positive, neutral, negative, angry), and 'summary' (1 sentence)."
+            },
+            {
+              "role": "user",
+              "content": "=Ticket Content: {{ $json.ticketContent }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 500,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "name": "Detect Language & Sentiment",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [680, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://{{ $env.PINECONE_INDEX_NAME }}-{{ $env.PINECONE_PROJECT_ID }}.svc.{{ $env.PINECONE_ENVIRONMENT }}.pinecone.io/query",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Api-Key",
+              "value": "={{ $env.PINECONE_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"vector\": {{ $json.embedding || '[0,0,0]' }},\n  \"topK\": 3,\n  \"includeMetadata\": true\n}",
+        "options": {}
+      },
+      "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+      "name": "Query Vector Database",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an expert multilingual customer support agent. Use the provided knowledge base context to answer the customer's ticket accurately and politely. Respond in the exact same language as the customer's ticket. If the context doesn't contain the answer, politely say you will escalate it."
+            },
+            {
+              "role": "user",
+              "content": "=Customer Ticket: {{ $('Parse Ticket Data').item.json.ticketContent }}\n\nKnowledge Base Context:\n{{ $json.matches.map(m => m.metadata.text).join('\\n---\\n') }}\n\nGenerate a helpful response."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.5,
+          "maxTokens": 1500
+        }
+      },
+      "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
+      "name": "Generate RAG Response",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [1120, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{ JSON.parse($('Detect Language & Sentiment').item.json.message.content).sentiment }}",
+              "rightValue": "angry",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
+      "name": "Check Angry Sentiment",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "channel": "={{ $env.SLACK_SUPPORT_ESCALATION_CHANNEL }}",
+        "text": "= *URGENT: Angry Customer Escalation*\n\n*Ticket ID:* {{ $('Parse Ticket Data').item.json.ticketId }}\n*Customer:* {{ $('Parse Ticket Data').item.json.customerName }} ({{ $('Parse Ticket Data').item.json.customerEmail }})\n*Sentiment:* Angry\n\n*Ticket Content:* {{ $('Parse Ticket Data').item.json.ticketContent }}\n\n*AI Drafted Response:* {{ $('Generate RAG Response').item.json.message.content }}\n\nPlease review and intervene immediately.",
+        "otherOptions": {}
+      },
+      "id": "a7b8c9d0-e1f2-3456-abcd-567890123456",
+      "name": "Alert Support Team on Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1560, 200],
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_SLACK_ID",
+          "name": "Slack API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hubapi.com/crm/v3/objects/tickets",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.HUBSPOT_PRIVATE_ACCESS_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"properties\": {\n    \"subject\": \"={{ $('Parse Ticket Data').item.json.ticketId }} - {{ JSON.parse($('Detect Language & Sentiment').item.json.message.content).summary }}\",\n    \"content\": \"={{ $('Parse Ticket Data').item.json.ticketContent }}\",\n    \"hubspot_owner_id\": \"{{ $env.HUBSPOT_SUPPORT_OWNER_ID }}\",\n    \"pipeline\": \"default\",\n    \"hs_pipeline_stage\": \"1\"\n  }\n}",
+        "options": {}
+      },
+      "id": "b8c9d0e1-f2a3-4567-bcde-678901234567",
+      "name": "Create Ticket in HubSpot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 400]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Parse Ticket Data').item.json.customerEmail }}",
+        "subject": "=Re: Support Ticket {{ $('Parse Ticket Data').item.json.ticketId }}",
+        "emailType": "html",
+        "html": "=<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>\n  <p>Dear {{ $('Parse Ticket Data').item.json.customerName }},</p>\n  <p>Thank you for reaching out to us. Here is the response to your inquiry:</p>\n  <div style='background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;'>\n    {{ $('Generate RAG Response').item.json.message.content }}\n  </div>\n  <p>If you need further assistance, please don't hesitate to reply to this email.</p>\n  <p>Best regards,<br><strong>Your Support Team</strong></p>\n</div>",
+        "options": {}
+      },
+      "id": "c9d0e1f2-a3b4-5678-cdef-789012345678",
+      "name": "Send Reply to Customer",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1780, 300],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_YOUR_SMTP_ID",
+          "name": "SMTP Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Ticket Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Ticket Data": {
+      "main": [
+        [
+          {
+            "node": "Detect Language & Sentiment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Language & Sentiment": {
+      "main": [
+        [
+          {
+            "node": "Query Vector Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Vector Database": {
+      "main": [
+        [
+          {
+            "node": "Generate RAG Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate RAG Response": {
+      "main": [
+        [
+          {
+            "node": "Check Angry Sentiment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Angry Sentiment": {
+      "main": [
+        [
+          {
+            "node": "Alert Support Team on Slack",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Ticket in HubSpot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert Support Team on Slack": {
+      "main": [
+        [
+          {
+            "node": "Send Reply to Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Ticket in HubSpot": {
+      "main": [
+        [
+          {
+            "node": "Send Reply to Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "AI Support"
+    },
+    {
+      "name": "RAG"
+    },
+    {
+      "name": "Multilingual"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-07-27T16:00:00.000Z",
+  "versionId": "multilingual-support-rag-v1.0"
+}
