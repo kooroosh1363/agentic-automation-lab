@@ -1,0 +1,364 @@
+{
+  "name": "36-AI-Sales-Outreach-Enrichment",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sales-outreach-webhook",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "sales-outreach-001"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize incoming lead data\nconst body = $input.first().json.body || $input.first().json;\n\nreturn [{\n  json: {\n    leadId: body.lead_id || 'LEAD-' + Date.now(),\n    firstName: body.first_name || body.firstName,\n    lastName: body.last_name || body.lastName,\n    email: body.email,\n    company: body.company,\n    domain: body.domain || body.company.toLowerCase().replace(/\\s+/g, '') + '.com',\n    title: body.title || 'Decision Maker'\n  }\n}];"
+      },
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "Parse Lead Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.clearbit.com/v2/companies/find?domain={{ $json.domain }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.CLEARBIT_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "name": "Enrich Company Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an expert B2B Sales Development Representative (SDR). Analyze the provided company data and extract a unique, recent 'hook' (e.g., recent funding, new product launch, leadership change, or notable growth) that can be used to personalize a cold email. Return ONLY a JSON object with: {\"hook\": \"string\", \"company_size\": \"number\", \"industry\": \"string\"}."
+            },
+            {
+              "role": "user",
+              "content": "=Company Name: {{ $('Parse Lead Data').item.json.company }}\nDomain: {{ $('Parse Lead Data').item.json.domain }}\nEnrichment Data: {{ JSON.stringify($json) }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 500,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+      "name": "AI Extract Personalization Hook",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [900, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a world-class copywriter for B2B SaaS. Write a hyper-personalized, concise cold email (under 150 words). Use the provided 'hook' naturally in the first sentence. Do not sound like a generic AI. Be conversational, respectful, and end with a low-friction call to action (e.g., 'Open to a brief chat next week?'). Return ONLY a JSON object with: {\"subject\": \"string\", \"body\": \"string\"}."
+            },
+            {
+              "role": "user",
+              "content": "=Prospect Name: {{ $('Parse Lead Data').item.json.firstName }}\nProspect Title: {{ $('Parse Lead Data').item.json.title }}\nCompany: {{ $('Parse Lead Data').item.json.company }}\nPersonalization Hook: {{ JSON.parse($('AI Extract Personalization Hook').item.json.message.content).hook }}\nIndustry: {{ JSON.parse($('AI Extract Personalization Hook').item.json.message.content).industry }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 600,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
+      "name": "AI Write Hyper-Personalized Email",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [1120, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate Lead Score\nconst item = $input.first().json;\nconst aiData = JSON.parse($('AI Extract Personalization Hook').item.json.message.content);\n\nlet score = 50; // Base score\nif (aiData.company_size && aiData.company_size > 50) score += 20;\nif (item.title.toLowerCase().includes('founder') || item.title.toLowerCase().includes('ceo') || item.title.toLowerCase().includes('director')) score += 20;\nif (aiData.hook && aiData.hook.length > 10) score += 10;\n\nreturn [{\n  json: {\n    ...item,\n    aiData,\n    leadScore: Math.min(score, 100)\n  }\n}];"
+      },
+      "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
+      "name": "Calculate Lead Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{ $json.leadScore }}",
+              "rightValue": 70,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "a7b8c9d0-e1f2-3456-abcd-567890123456",
+      "name": "Check Lead Score",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Parse Lead Data').item.json.email }}",
+        "subject": "={{ JSON.parse($('AI Write Hyper-Personalized Email').item.json.message.content).subject }}",
+        "emailType": "html",
+        "html": "=<div style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>\n  <p>Hi {{ $('Parse Lead Data').item.json.firstName }},</p>\n  <p>{{ JSON.parse($('AI Write Hyper-Personalized Email').item.json.message.content).body }}</p>\n  <p>Best regards,<br><strong>[Your Name]</strong><br>[Your Title]</p>\n</div>",
+        "options": {}
+      },
+      "id": "b8c9d0e1-f2a3-4567-bcde-678901234567",
+      "name": "Send Personalized Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1780, 200],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_YOUR_SMTP_ID",
+          "name": "SMTP Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hubapi.com/crm/v3/objects/contacts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.HUBSPOT_PRIVATE_ACCESS_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"properties\": {\n    \"email\": \"={{ $('Parse Lead Data').item.json.email }}\",\n    \"firstname\": \"={{ $('Parse Lead Data').item.json.firstName }}\",\n    \"lastname\": \"={{ $('Parse Lead Data').item.json.lastName }}\",\n    \"company\": \"={{ $('Parse Lead Data').item.json.company }}\",\n    \"lead_score\": \"={{ $json.leadScore }}\",\n    \"personalization_hook\": \"={{ $json.aiData.hook }}\",\n    \"lifecyclestage\": \"lead\"\n  }\n}",
+        "options": {}
+      },
+      "id": "c9d0e1f2-a3b4-5678-cdef-789012345678",
+      "name": "Create/Update Contact in HubSpot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 400]
+    },
+    {
+      "parameters": {
+        "channel": "={{ $env.SLACK_SALES_TEAM_CHANNEL }}",
+        "text": "=🎯 *New High-Value Lead Engaged!*\n\n*Name:* {{ $('Parse Lead Data').item.json.firstName }} {{ $('Parse Lead Data').item.json.lastName }}\n*Company:* {{ $('Parse Lead Data').item.json.company }}\n*Lead Score:* {{ $('Calculate Lead Score').item.json.leadScore }}/100\n\n*Hook Used:* {{ $('Calculate Lead Score').item.json.aiData.hook }}\n\n*Email Sent:* ✅\n*CRM Updated:* ✅",
+        "otherOptions": {}
+      },
+      "id": "d0e1f2a3-b4c5-6789-defa-890123456789",
+      "name": "Notify Sales Team on Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [2000, 200],
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_SLACK_ID",
+          "name": "Slack API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Enrich Company Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich Company Data": {
+      "main": [
+        [
+          {
+            "node": "AI Extract Personalization Hook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Extract Personalization Hook": {
+      "main": [
+        [
+          {
+            "node": "AI Write Hyper-Personalized Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Write Hyper-Personalized Email": {
+      "main": [
+        [
+          {
+            "node": "Calculate Lead Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Lead Score": {
+      "main": [
+        [
+          {
+            "node": "Check Lead Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Lead Score": {
+      "main": [
+        [
+          {
+            "node": "Send Personalized Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create/Update Contact in HubSpot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Personalized Email": {
+      "main": [
+        [
+          {
+            "node": "Create/Update Contact in HubSpot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create/Update Contact in HubSpot": {
+      "main": [
+        [
+          {
+            "node": "Notify Sales Team on Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Sales Automation"
+    },
+    {
+      "name": "AI Enrichment"
+    },
+    {
+      "name": "Lead Generation"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-07-27T18:00:00.000Z",
+  "versionId": "sales-outreach-enrichment-v1.0"
+}
