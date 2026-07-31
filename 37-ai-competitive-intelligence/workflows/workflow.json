@@ -1,0 +1,227 @@
+{
+  "name": "37-AI-Competitive-Intelligence",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Daily Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.COMPETITOR_URL }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "Scrape Competitor Website",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract text content and compare with historical data\nconst html = $input.first().json.data;\nconst textContent = html.replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim().substring(0, 5000);\n\n// Get yesterday's data from n8n static storage\nconst workflowStaticData = getWorkflowStaticData('global');\nconst previousContent = workflowStaticData.competitorContent || 'No previous data';\n\n// Check for changes\nconst hasChanged = previousContent !== textContent;\n\n// Save today's content for tomorrow's comparison\nworkflowStaticData.competitorContent = textContent;\n\nreturn [{\n  json: {\n    currentContent: textContent,\n    previousContent: hasChanged ? previousContent : null,\n    hasChanges: hasChanged,\n    competitorUrl: $('Scrape Competitor Website').item.json.url || $env.COMPETITOR_URL\n  }\n}];"
+      },
+      "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "name": "Detect Changes (Code)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{ $json.hasChanges }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+      "name": "IF Changes Detected",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an expert Competitive Intelligence Analyst. Analyze the changes in a competitor's website. Identify strategic shifts, new features, pricing changes, or marketing pivots. Return a JSON object with: {\"summary\": \"1 sentence overview\", \"key_changes\": [\"list of changes\"], \"strategic_implication\": \"what this means for our business\", \"recommended_action\": \"what our team should do\"}."
+            },
+            {
+              "role": "user",
+              "content": "=Competitor URL: {{ $json.competitorUrl }}\n\nPrevious Content (Snippet):\n{{ $json.previousContent }}\n\nCurrent Content (Snippet):\n{{ $json.currentContent }}\n\nAnalyze the differences and provide strategic insights."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.4,
+          "maxTokens": 1000,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
+      "name": "AI Analyze Competitor Strategy",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [1120, 200],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "={{ $env.SLACK_INTELLIGENCE_CHANNEL }}",
+        "text": "= *Competitive Intelligence Alert*\n\n*Competitor:* {{ $('Detect Changes (Code)').item.json.competitorUrl }}\n\n*AI Summary:* {{ JSON.parse($('AI Analyze Competitor Strategy').item.json.message.content).summary }}\n\n*Key Changes:*\n{{ JSON.parse($('AI Analyze Competitor Strategy').item.json.message.content).key_changes.map(c => '- ' + c).join('\\n') }}\n\n*Strategic Implication:* {{ JSON.parse($('AI Analyze Competitor Strategy').item.json.message.content).strategic_implication }}\n\n*Recommended Action:* {{ JSON.parse($('AI Analyze Competitor Strategy').item.json.message.content).recommended_action }}",
+        "otherOptions": {}
+      },
+      "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
+      "name": "Notify Product Team on Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1340, 200],
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_SLACK_ID",
+          "name": "Slack API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// No changes detected, log and stop\nreturn [{ json: { message: 'No changes detected on competitor website today.', url: $('Scrape Competitor Website').item.json.url || $env.COMPETITOR_URL } }];"
+      },
+      "id": "a7b8c9d0-e1f2-3456-abcd-567890123456",
+      "name": "Log No Changes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 400]
+    }
+  ],
+  "connections": {
+    "Daily Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Scrape Competitor Website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Competitor Website": {
+      "main": [
+        [
+          {
+            "node": "Detect Changes (Code)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Changes (Code)": {
+      "main": [
+        [
+          {
+            "node": "IF Changes Detected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Changes Detected": {
+      "main": [
+        [
+          {
+            "node": "AI Analyze Competitor Strategy",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log No Changes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Analyze Competitor Strategy": {
+      "main": [
+        [
+          {
+            "node": "Notify Product Team on Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Competitive Intelligence"
+    },
+    {
+      "name": "AI Analysis"
+    },
+    {
+      "name": "Market Trends"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-07-28T08:00:00.000Z",
+  "versionId": "competitive-intelligence-v1.0"
+}
