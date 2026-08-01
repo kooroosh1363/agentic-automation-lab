@@ -1,0 +1,243 @@
+{
+  "name": "38-AI-Document-Processing",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "document-upload",
+        "responseMode": "onReceived",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "document-upload-001"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Convert Binary Data to Base64 for GPT-4o Vision\nconst binaryData = $input.first().binary;\nconst base64Data = binaryData.data.data;\n\nreturn [{\n  json: {\n    base64File: base64Data,\n    fileName: binaryData.data.fileName || 'document.pdf',\n    mimeType: binaryData.data.mimeType || 'application/pdf'\n  }\n}];"
+      },
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "Prepare Binary Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4o"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an expert Document Processing AI. Analyze the provided document (invoice, contract, or resume). Extract the following fields into a strict JSON object: {\"document_type\": \"string\", \"vendor_or_name\": \"string\", \"total_amount\": number, \"currency\": \"string\", \"date\": \"YYYY-MM-DD\", \"red_flag\": boolean, \"red_flag_reason\": \"string\"}. Set red_flag to true if total_amount > 10000, or if the document looks suspicious/incomplete. Return ONLY valid JSON."
+            },
+            {
+              "role": "user",
+              "content": "=Analyze this document and extract the structured data."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.1,
+          "maxTokens": 1000,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "name": "AI Extract Document Data",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [680, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate extracted data and check for red flags\nconst aiOutput = JSON.parse($input.first().json.message.content);\n\n// Basic validation\nlet isValid = true;\nlet validationErrors = [];\n\nif (!aiOutput.vendor_or_name || aiOutput.vendor_or_name.length < 2) {\n  isValid = false;\n  validationErrors.push('Invalid vendor/name');\n}\nif (typeof aiOutput.total_amount !== 'number' || aiOutput.total_amount < 0) {\n  isValid = false;\n  validationErrors.push('Invalid amount');\n}\n\nreturn [{\n  json: {\n    ...aiOutput,\n    isValid,\n    validationErrors,\n    processedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+      "name": "Validate & Check Red Flags",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{ $json.red_flag }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
+      "name": "IF Red Flag Detected",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.airtable.com/v0/{{ $env.AIRTABLE_BASE_ID }}/{{ $env.AIRTABLE_TABLE_ID }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.AIRTABLE_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"fields\": {\n    \"Document Type\": \"={{ $json.document_type }}\",\n    \"Vendor/Name\": \"={{ $json.vendor_or_name }}\",\n    \"Total Amount\": {{ $json.total_amount }},\n    \"Currency\": \"={{ $json.currency }}\",\n    \"Date\": \"={{ $json.date }}\",\n    \"Status\": \"{{ $json.red_flag ? 'Flagged' : 'Approved' }}\",\n    \"Processed At\": \"={{ $json.processedAt }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
+      "name": "Save to Airtable",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "channel": "={{ $env.SLACK_ALERTS_CHANNEL }}",
+        "text": "= *Document Red Flag Alert!*\n\n*Document Type:* {{ $('Validate & Check Red Flags').item.json.document_type }}\n*Vendor/Name:* {{ $('Validate & Check Red Flags').item.json.vendor_or_name }}\n*Amount:* {{ $('Validate & Check Red Flags').item.json.total_amount }} {{ $('Validate & Check Red Flags').item.json.currency }}\n\n*Reason:* {{ $('Validate & Check Red Flags').item.json.red_flag_reason }}\n\n*Action Required:* Please review this document immediately in Airtable.",
+        "otherOptions": {}
+      },
+      "id": "a7b8c9d0-e1f2-3456-abcd-567890123456",
+      "name": "Alert Manager on Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1340, 400],
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_SLACK_ID",
+          "name": "Slack API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare Binary Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Binary Data": {
+      "main": [
+        [
+          {
+            "node": "AI Extract Document Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Extract Document Data": {
+      "main": [
+        [
+          {
+            "node": "Validate & Check Red Flags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Check Red Flags": {
+      "main": [
+        [
+          {
+            "node": "IF Red Flag Detected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Red Flag Detected": {
+      "main": [
+        [
+          {
+            "node": "Alert Manager on Slack",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save to Airtable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Document Processing"
+    },
+    {
+      "name": "AI Vision"
+    },
+    {
+      "name": "Automation"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-07-28T10:00:00.000Z",
+  "versionId": "document-processing-v1.0"
+}
