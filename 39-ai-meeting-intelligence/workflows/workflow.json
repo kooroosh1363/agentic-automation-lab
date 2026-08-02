@@ -1,0 +1,259 @@
+{
+  "name": "39-AI-Meeting-Intelligence",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "meeting-transcript",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "meeting-transcript-001"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Clean and prepare transcript\nconst body = $input.first().json.body || $input.first().json;\nconst transcript = body.transcript || '';\nconst meetingTitle = body.title || 'Untitled Meeting';\nconst meetingDate = body.date || new Date().toISOString().split('T')[0];\n\n// Basic cleaning: remove extra spaces, normalize line breaks\nconst cleanedTranscript = transcript.replace(/\\s+/g, ' ').trim();\n\nreturn [{\n  json: {\n    meetingTitle,\n    meetingDate,\n    cleanedTranscript,\n    fullPayload: body\n  }\n}];"
+      },
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "Clean & Prepare Transcript",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an expert Meeting Analyst and Project Manager. Analyze the provided meeting transcript. Extract: 1) A brief executive summary. 2) Key decisions made. 3) Action items. For each action item, extract: 'task' (clear description), 'assignee' (person's name, or 'Unassigned' if not specified), and 'deadline' (YYYY-MM-DD, or 'TBD' if not specified). Return ONLY a strict JSON object with this structure: {\"summary\": \"string\", \"decisions\": [\"string\"], \"action_items\": [{\"task\": \"string\", \"assignee\": \"string\", \"deadline\": \"string\"}]}."
+            },
+            {
+              "role": "user",
+              "content": "=Meeting Title: {{ $json.meetingTitle }}\nMeeting Date: {{ $json.meetingDate }}\n\nTranscript:\n{{ $json.cleanedTranscript }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.2,
+          "maxTokens": 2000,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "name": "AI Extract Action Items",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [680, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI output and split action items into individual items for looping\nconst aiOutput = JSON.parse($input.first().json.message.content);\nconst actionItems = aiOutput.action_items || [];\n\n// Map each action item to a new item in the output array\nreturn actionItems.map(item => ({\n  json: {\n    meetingTitle: $('Clean & Prepare Transcript').item.json.meetingTitle,\n    meetingDate: $('Clean & Prepare Transcript').item.json.meetingDate,\n    task: item.task,\n    assignee: item.assignee,\n    deadline: item.deadline,\n    summary: aiOutput.summary,\n    decisions: aiOutput.decisions\n  }\n}));"
+      },
+      "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+      "name": "Split Action Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{ $json.assignee }}",
+              "rightValue": "Unassigned",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
+      "name": "IF Has Assignee",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/pages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.NOTION_API_KEY }}"
+            },
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"parent\": { \"database_id\": \"{{ $env.NOTION_DATABASE_ID }}\" },\n  \"properties\": {\n    \"Name\": { \"title\": [{ \"text\": { \"content\": \"{{ $json.task }}\" }}] },\n    \"Assignee\": { \"rich_text\": [{ \"text\": { \"content\": \"{{ $json.assignee }}\" }}] },\n    \"Deadline\": { \"date\": { \"start\": \"{{ $json.deadline === 'TBD' ? new Date().toISOString().split('T')[0] : $json.deadline }}\" } },\n    \"Meeting\": { \"rich_text\": [{ \"text\": { \"content\": \"{{ $json.meetingTitle }}\" }}] }\n  }\n}",
+        "options": {}
+      },
+      "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
+      "name": "Create Task in Notion",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "channel": "={{ $env.SLACK_TASKS_CHANNEL }}",
+        "text": "= *New Action Item Assigned!*\n\n*Meeting:* {{ $json.meetingTitle }}\n*Task:* {{ $json.task }}\n*Deadline:* {{ $json.deadline }}\n\nHey {{ $json.assignee }}, please check Notion for details and update the status by the deadline. 🚀",
+        "otherOptions": {}
+      },
+      "id": "a7b8c9d0-e1f2-3456-abcd-567890123456",
+      "name": "Notify Assignee on Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1560, 200],
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_SLACK_ID",
+          "name": "Slack API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log unassigned items\nreturn [{ json: { message: 'Action item has no assignee, skipped task creation.', task: $input.first().json.task } }];"
+      },
+      "id": "b8c9d0e1-f2a3-4567-bcde-678901234567",
+      "name": "Log Unassigned Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Clean & Prepare Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean & Prepare Transcript": {
+      "main": [
+        [
+          {
+            "node": "AI Extract Action Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Extract Action Items": {
+      "main": [
+        [
+          {
+            "node": "Split Action Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Action Items": {
+      "main": [
+        [
+          {
+            "node": "IF Has Assignee",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Has Assignee": {
+      "main": [
+        [
+          {
+            "node": "Create Task in Notion",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Unassigned Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Task in Notion": {
+      "main": [
+        [
+          {
+            "node": "Notify Assignee on Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Meeting Intelligence"
+    },
+    {
+      "name": "AI Automation"
+    },
+    {
+      "name": "Project Management"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-07-28T12:00:00.000Z",
+  "versionId": "meeting-intelligence-v1.0"
+}
