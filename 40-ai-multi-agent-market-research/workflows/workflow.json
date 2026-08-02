@@ -1,0 +1,299 @@
+{
+  "name": "40-AI-Multi-Agent-Market-Research",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "market-research",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Research Request Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "market-research-001"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"api_key\": \"{{ $env.TAVILY_API_KEY }}\",\n  \"query\": \"{{ $json.topic }}\",\n  \"search_depth\": \"advanced\",\n  \"include_answer\": true,\n  \"max_results\": 5\n}",
+        "options": {}
+      },
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "Tavily Web Search Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an Expert Market Research Analyst. Your job is to analyze the raw search results provided by the Search Agent. Extract the top 5 most critical insights, identify market trends, potential risks, and key competitors. Return a structured JSON object: {\"insights\": [\"string\"], \"trends\": [\"string\"], \"risks\": [\"string\"], \"competitors\": [\"string\"]}."
+            },
+            {
+              "role": "user",
+              "content": "=Research Topic: {{ $('Research Request Webhook').item.json.body.topic }}\n\nRaw Search Data:\n{{ JSON.stringify($json.results) }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 1500,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "name": "AI Analyst Agent",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [680, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a Senior Business Report Writer. Write a comprehensive, professional market research report in Markdown format based on the structured analysis provided. The report must include: 1. Executive Summary, 2. Market Overview, 3. Key Insights & Trends, 4. Risk Analysis, 5. Competitive Landscape, 6. Strategic Recommendations. Use professional business language."
+            },
+            {
+              "role": "user",
+              "content": "=Topic: {{ $('Research Request Webhook').item.json.body.topic }}\n\nAnalyst Data:\n{{ $json.message.content }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.5,
+          "maxTokens": 3000
+        }
+      },
+      "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+      "name": "AI Writer Agent",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [900, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Convert Markdown report to basic HTML for PDF generation\nconst markdown = $input.first().json.message.content;\nconst topic = $('Research Request Webhook').item.json.body.topic;\n\n// Simple Markdown to HTML conversion (headers, lists, paragraphs)\nlet html = markdown\n  .replace(/^### (.*$)/gim, '<h3>$1</h3>')\n  .replace(/^## (.*$)/gim, '<h2>$1</h2>')\n  .replace(/^# (.*$)/gim, '<h1>$1</h1>')\n  .replace(/\\*\\*(.*?)\\*\\*/gim, '<strong>$1</strong>')\n  .replace(/\\* (.*$)/gim, '<li>$1</li>')\n  .replace(/\\n\\n/gim, '<br><br>');\n\n// Wrap in a professional HTML template\nconst fullHtml = `\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }\n    h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }\n    h2 { color: #2980b9; margin-top: 30px; }\n    h3 { color: #16a085; }\n    li { margin-bottom: 5px; }\n    .header { text-align: center; margin-bottom: 40px; }\n    .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #7f8c8d; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>Market Research Report</h1>\n    <p><strong>Topic:</strong> ${topic}</p>\n    <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>\n  </div>\n  ${html}\n  <div class=\"footer\">\n    <p>Generated automatically by AI Multi-Agent System | Confidential</p>\n  </div>\n</body>\n</html>`;\n\nreturn [{ json: { htmlContent: fullHtml, fileName: `Research_${topic.replace(/\\s+/g, '_')}.pdf` } }];"
+      },
+      "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
+      "name": "Format HTML for PDF",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.md2pdf.link/v1/md2pdf",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"html\": \"{{ $json.htmlContent }}\",\n  \"filename\": \"{{ $json.fileName }}\"\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
+      "name": "Generate PDF Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "name": "={{ $('Format HTML for PDF').item.json.fileName }}",
+        "folderId": {
+          "__rl": true,
+          "value": "{{ $env.GOOGLE_DRIVE_FOLDER_ID }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "a7b8c9d0-e1f2-3456-abcd-567890123456",
+      "name": "Upload to Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [1560, 300],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_GDRIVE_ID",
+          "name": "Google Drive API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toEmail": "={{ $('Research Request Webhook').item.json.body.email }}",
+        "subject": "=Your Market Research Report is Ready: {{ $('Research Request Webhook').item.json.body.topic }}",
+        "emailType": "text",
+        "message": "=Hello,\n\nYour requested market research report on \"{{ $('Research Request Webhook').item.json.body.topic }}\" has been successfully generated by our AI Multi-Agent system.\n\nYou can download the full PDF report from the following link:\n{{ $('Upload to Google Drive').item.json.webViewLink }}\n\nIf you have any questions or need further analysis, please let us know.\n\nBest regards,\nAI Research Team",
+        "options": {}
+      },
+      "id": "b8c9d0e1-f2a3-4567-bcde-678901234567",
+      "name": "Send Report via Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1780, 300],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_WITH_YOUR_GMAIL_ID",
+          "name": "Gmail API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Research Request Webhook": {
+      "main": [
+        [
+          {
+            "node": "Tavily Web Search Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily Web Search Agent": {
+      "main": [
+        [
+          {
+            "node": "AI Analyst Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Analyst Agent": {
+      "main": [
+        [
+          {
+            "node": "AI Writer Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Writer Agent": {
+      "main": [
+        [
+          {
+            "node": "Format HTML for PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format HTML for PDF": {
+      "main": [
+        [
+          {
+            "node": "Generate PDF Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate PDF Report": {
+      "main": [
+        [
+          {
+            "node": "Upload to Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Send Report via Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Multi-Agent AI"
+    },
+    {
+      "name": "Market Research"
+    },
+    {
+      "name": "Enterprise Automation"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-08-03T14:00:00.000Z",
+  "versionId": "multi-agent-research-v1.0"
+}
