@@ -1,0 +1,200 @@
+{
+  "name": "HA Cluster Health Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [-420, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// لیست سرویس‌های کلاستر برای بررسی سلامت\nconst services = [\n  { name: 'PostgreSQL', endpoint: 'http://localhost:5432/health', critical: true },\n  { name: 'Redis Queue', endpoint: 'http://localhost:6379/health', critical: true },\n  { name: 'n8n Main', endpoint: 'http://localhost:5678/healthz', critical: true },\n  { name: 'Nginx LB', endpoint: 'http://localhost:80/health', critical: false }\n];\n\nreturn services.map(s => ({ json: s }));"
+      },
+      "id": "define-services",
+      "name": "Define Services",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-200, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "split-batch",
+      "name": "Loop Services",
+      "type": "n8n-nodes-base.splitInBatch",
+      "typeVersion": 1,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.endpoint }}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "http-check",
+      "name": "Health Check Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [220, 300],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.statusCode }}",
+              "operation": "equal",
+              "value2": 200
+            }
+          ]
+        }
+      },
+      "id": "if-healthy",
+      "name": "Is Healthy?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ثبت وضعیت سالم\nreturn [{ json: {\n  service: $('Loop Services').item.json.name,\n  status: 'HEALTHY',\n  timestamp: new Date().toISOString(),\n  critical: $('Loop Services').item.json.critical\n}}];"
+      },
+      "id": "log-healthy",
+      "name": "Log Healthy",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 180]
+    },
+    {
+      "parameters": {
+        "jsCode": "// آماده‌سازی هشدار برای سرویس خراب\nconst svc = $('Loop Services').item.json;\nreturn [{ json: {\n  service: svc.name,\n  status: 'DOWN',\n  critical: svc.critical,\n  severity: svc.critical ? 'CRITICAL' : 'WARNING',\n  message: `Service ${svc.name} is not responding!`,\n  timestamp: new Date().toISOString()\n}}];"
+      },
+      "id": "prepare-alert",
+      "name": "Prepare Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 420]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.critical }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-critical",
+      "name": "Is Critical?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [880, 420]
+    },
+    {
+      "parameters": {
+        "jsCode": "// شبیه‌سازی ارسال هشدار فوری (SMS/PagerDuty)\nreturn [{ json: { channel: 'URGENT_SMS', payload: $json } }];"
+      },
+      "id": "send-critical",
+      "name": "Send Critical Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "// شبیه‌سازی ارسال هشدار کم‌اهمیت (Email/Slack)\nreturn [{ json: { channel: 'SLACK', payload: $json } }];"
+      },
+      "id": "send-warning",
+      "name": "Send Warning Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 520]
+    },
+    {
+      "parameters": {},
+      "id": "merge-results",
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [1320, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// تولید گزارش نهایی مانیتورینگ\nconst items = $input.all();\nconst healthy = items.filter(i => i.json.status === 'HEALTHY').length;\nconst down = items.filter(i => i.json.status === 'DOWN').length;\n\nreturn [{ json: {\n  totalChecked: items.length,\n  healthyCount: healthy,\n  downCount: down,\n  overallStatus: down > 0 ? 'DEGRADED' : 'ALL_SYSTEMS_GO',\n  reportTime: new Date().toISOString()\n}}];"
+      },
+      "id": "final-report",
+      "name": "Final Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 300]
+    }
+  ],
+  "connections": {
+    "Every 5 Minutes": {
+      "main": [[{ "node": "Define Services", "type": "main", "index": 0 }]]
+    },
+    "Define Services": {
+      "main": [[{ "node": "Loop Services", "type": "main", "index": 0 }]]
+    },
+    "Loop Services": {
+      "main": [
+        [],
+        [{ "node": "Health Check Request", "type": "main", "index": 0 }]
+      ]
+    },
+    "Health Check Request": {
+      "main": [[{ "node": "Is Healthy?", "type": "main", "index": 0 }]]
+    },
+    "Is Healthy?": {
+      "main": [
+        [{ "node": "Log Healthy", "type": "main", "index": 0 }],
+        [{ "node": "Prepare Alert", "type": "main", "index": 0 }]
+      ]
+    },
+    "Prepare Alert": {
+      "main": [[{ "node": "Is Critical?", "type": "main", "index": 0 }]]
+    },
+    "Is Critical?": {
+      "main": [
+        [{ "node": "Send Critical Alert", "type": "main", "index": 0 }],
+        [{ "node": "Send Warning Alert", "type": "main", "index": 0 }]
+      ]
+    },
+    "Log Healthy": {
+      "main": [[{ "node": "Merge Results", "type": "main", "index": 0 }]]
+    },
+    "Send Critical Alert": {
+      "main": [[{ "node": "Merge Results", "type": "main", "index": 1 }]]
+    },
+    "Send Warning Alert": {
+      "main": [[{ "node": "Merge Results", "type": "main", "index": 1 }]]
+    },
+    "Merge Results": {
+      "main": [[{ "node": "Final Report", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}
