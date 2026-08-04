@@ -1,0 +1,16 @@
+# Environment variables (NEVER commit secrets)
+.env
+
+# Local data volumes
+data/postgres/
+data/redis/
+
+# n8n internal data
+n8n_data/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
