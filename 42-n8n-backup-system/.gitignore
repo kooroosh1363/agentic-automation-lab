@@ -1,0 +1,14 @@
+# Environment variables (NEVER commit secrets)
+.env
+
+# Local backup files
+backups/
+*.enc
+*.bak
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,324 @@
+{
+  "name": "n8n Backup Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 2 * * *"
+            }
+          ]
+        }
+      },
+      "id": "backup-schedule",
+      "name": "Daily 2 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [-680, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.N8N_API_URL }}/api/v1/workflows",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "headerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-KEY",
+              "value": "={{ $env.N8N_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "get-workflows",
+      "name": "Fetch All Workflows",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-460, 300],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare backup data with metadata\nconst workflows = $input.all();\nconst timestamp = new Date().toISOString();\nconst backupId = `backup_${timestamp.replace(/[:.]/g, '-')}`;\n\nconst backupPayload = {\n  backupId: backupId,\n  timestamp: timestamp,\n  workflowCount: workflows.length,\n  data: workflows.map(w => w.json),\n  checksum: Math.random().toString(36).substring(2, 15)\n};\n\nreturn [{ json: backupPayload }];"
+      },
+      "id": "prepare-data",
+      "name": "Prepare Backup Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "encrypt",
+        "algorithm": "aes-256-cbc",
+        "password": "={{ $env.BACKUP_ENCRYPTION_KEY }}",
+        "options": {}
+      },
+      "id": "encrypt-data",
+      "name": "Encrypt Backup",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [-20, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $env.BACKUP_DESTINATIONS }}",
+              "operation": "contains",
+              "value2": "s3"
+            }
+          ]
+        }
+      },
+      "id": "check-s3",
+      "name": "S3 Enabled?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [200, 100]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "={{ $env.AWS_S3_BUCKET }}",
+        "fileName": "=backups/{{ $json.backupId }}.enc",
+        "binaryPropertyName": "data",
+        "options": {}
+      },
+      "id": "upload-s3",
+      "name": "Upload to S3",
+      "type": "n8n-nodes-base.awsS3",
+      "typeVersion": 1,
+      "position": [420, 40],
+      "credentials": {
+        "aws": {
+          "id": "YOUR_AWS_CRED_ID",
+          "name": "AWS Backup Account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $env.BACKUP_DESTINATIONS }}",
+              "operation": "contains",
+              "value2": "gdrive"
+            }
+          ]
+        }
+      },
+      "id": "check-gdrive",
+      "name": "GDrive Enabled?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "name": "=n8n-backups/{{ $json.backupId }}.enc",
+        "binaryPropertyName": "data",
+        "options": {
+          "mimeType": "application/octet-stream"
+        }
+      },
+      "id": "upload-gdrive",
+      "name": "Upload to Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 2,
+      "position": [420, 240],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GDRIVE_CRED_ID",
+          "name": "Google Drive Backup"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $env.BACKUP_DESTINATIONS }}",
+              "operation": "contains",
+              "value2": "ftp"
+            }
+          ]
+        }
+      },
+      "id": "check-ftp",
+      "name": "FTP Enabled?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [200, 500]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "path": "=/backups/{{ $json.backupId }}.enc",
+        "binaryPropertyName": "data",
+        "options": {}
+      },
+      "id": "upload-ftp",
+      "name": "Upload to FTP",
+      "type": "n8n-nodes-base.ftp",
+      "typeVersion": 1,
+      "position": [420, 440],
+      "credentials": {
+        "ftp": {
+          "id": "YOUR_FTP_CRED_ID",
+          "name": "FTP Backup Server"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "options": {}
+      },
+      "id": "merge-results",
+      "name": "Merge Upload Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate backup report\nconst uploads = $input.all();\nconst successful = uploads.filter(u => !u.json.error).length;\nconst failed = uploads.filter(u => u.json.error).length;\n\nreturn [{ json: {\n  backupId: $('Prepare Backup Data').item.json.backupId,\n  timestamp: new Date().toISOString(),\n  totalDestinations: uploads.length,\n  successfulUploads: successful,\n  failedUploads: failed,\n  status: failed > 0 ? 'PARTIAL_SUCCESS' : 'SUCCESS'\n}}];"
+      },
+      "id": "generate-report",
+      "name": "Generate Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.status }}",
+              "operation": "equals",
+              "value2": "SUCCESS"
+            }
+          ]
+        }
+      },
+      "id": "check-success",
+      "name": "All Successful?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1080, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: `✅ Backup ${$json.backupId} completed successfully to all destinations.` }) }}",
+        "options": {}
+      },
+      "id": "notify-success",
+      "name": "Notify Success",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1300, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: `⚠️ Backup ${$json.backupId} completed with errors. Failed: ${$json.failedUploads}/${$json.totalDestinations}` }) }}",
+        "options": {}
+      },
+      "id": "notify-partial",
+      "name": "Notify Partial Failure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1300, 400]
+    }
+  ],
+  "connections": {
+    "Daily 2 AM": {
+      "main": [[{ "node": "Fetch All Workflows", "type": "main", "index": 0 }]]
+    },
+    "Fetch All Workflows": {
+      "main": [
+        [{ "node": "Prepare Backup Data", "type": "main", "index": 0 }],
+        [{ "node": "Generate Report", "type": "main", "index": 0 }]
+      ]
+    },
+    "Prepare Backup Data": {
+      "main": [[{ "node": "Encrypt Backup", "type": "main", "index": 0 }]]
+    },
+    "Encrypt Backup": {
+      "main": [
+        [{ "node": "S3 Enabled?", "type": "main", "index": 0 }],
+        [{ "node": "GDrive Enabled?", "type": "main", "index": 0 }],
+        [{ "node": "FTP Enabled?", "type": "main", "index": 0 }]
+      ]
+    },
+    "S3 Enabled?": {
+      "main": [
+        [{ "node": "Upload to S3", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "GDrive Enabled?": {
+      "main": [
+        [{ "node": "Upload to Google Drive", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "FTP Enabled?": {
+      "main": [
+        [{ "node": "Upload to FTP", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Upload to S3": {
+      "main": [[{ "node": "Merge Upload Results", "type": "main", "index": 0 }]]
+    },
+    "Upload to Google Drive": {
+      "main": [[{ "node": "Merge Upload Results", "type": "main", "index": 1 }]]
+    },
+    "Upload to FTP": {
+      "main": [[{ "node": "Merge Upload Results", "type": "main", "index": 2 }]]
+    },
+    "Merge Upload Results": {
+      "main": [[{ "node": "Generate Report", "type": "main", "index": 0 }]]
+    },
+    "Generate Report": {
+      "main": [[{ "node": "All Successful?", "type": "main", "index": 0 }]]
+    },
+    "All Successful?": {
+      "main": [
+        [{ "node": "Notify Success", "type": "main", "index": 0 }],
+        [{ "node": "Notify Partial Failure", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "YOUR_ERROR_WORKFLOW_ID"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

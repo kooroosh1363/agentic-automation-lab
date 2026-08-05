@@ -1,0 +1,171 @@
+{
+  "name": "Disaster Recovery Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "error-trigger",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [-680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format error data for alerting\nconst error = $input.item.json;\nconst workflow = error.workflow || {};\nconst execution = error.execution || {};\n\nreturn [{ json: {\n  severity: 'CRITICAL',\n  workflowName: workflow.name || 'Unknown',\n  workflowId: workflow.id || 'Unknown',\n  errorMessage: execution.error?.message || 'Unknown error',\n  errorStack: execution.error?.stack || '',\n  failedNode: execution.lastNodeExecuted || 'Unknown',\n  timestamp: new Date().toISOString(),\n  executionId: execution.id || 'Unknown'\n}}];"
+      },
+      "id": "format-error",
+      "name": "Format Error Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.severity }}",
+              "operation": "equals",
+              "value2": "CRITICAL"
+            }
+          ]
+        }
+      },
+      "id": "is-critical",
+      "name": "Is Critical?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [-240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: `🚨 CRITICAL: Backup workflow '${$json.workflowName}' failed at node '${$json.failedNode}'. Error: ${$json.errorMessage}` }) }}",
+        "options": {}
+      },
+      "id": "alert-slack",
+      "name": "Alert Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-20, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PAGERDUTY_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ payload: { summary: `n8n Backup Failure: ${$json.workflowName}`, severity: 'critical', source: 'n8n-backup-system' } }) }}",
+        "options": {}
+      },
+      "id": "alert-pagerduty",
+      "name": "Alert PagerDuty",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [200, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: `⚠️ WARNING: Backup workflow '${$json.workflowName}' encountered a non-critical error.` }) }}",
+        "options": {}
+      },
+      "id": "alert-slack-warning",
+      "name": "Alert Slack Warning",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-20, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log error to persistent storage or monitoring system\nconst errorData = $input.item.json;\nconsole.log('DISASTER RECOVERY LOG:', JSON.stringify(errorData, null, 2));\n\n// Here you could send to a logging service like Datadog, New Relic, etc.\nreturn [{ json: {\n  logged: true,\n  timestamp: new Date().toISOString(),\n  errorId: errorData.executionId\n}}];"
+      },
+      "id": "log-error",
+      "name": "Log Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.logged }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "verify-log",
+      "name": "Verify Logged?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Final recovery action summary\nreturn [{ json: {\n  status: 'ERROR_HANDLED',\n  message: 'Error has been logged and alerts sent. Manual intervention may be required.',\n  timestamp: new Date().toISOString()\n}}];"
+      },
+      "id": "final-summary",
+      "name": "Final Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Escalate if logging failed\nreturn [{ json: {\n  status: 'ESCALATION_REQUIRED',\n  message: 'Failed to log error. Immediate manual review required.',\n  timestamp: new Date().toISOString()\n}}];"
+      },
+      "id": "escalate",
+      "name": "Escalate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 400]
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [[{ "node": "Format Error Data", "type": "main", "index": 0 }]]
+    },
+    "Format Error Data": {
+      "main": [[{ "node": "Is Critical?", "type": "main", "index": 0 }]]
+    },
+    "Is Critical?": {
+      "main": [
+        [{ "node": "Alert Slack", "type": "main", "index": 0 }],
+        [{ "node": "Alert Slack Warning", "type": "main", "index": 0 }]
+      ]
+    },
+    "Alert Slack": {
+      "main": [[{ "node": "Alert PagerDuty", "type": "main", "index": 0 }]]
+    },
+    "Alert PagerDuty": {
+      "main": [[{ "node": "Log Error", "type": "main", "index": 0 }]]
+    },
+    "Alert Slack Warning": {
+      "main": [[{ "node": "Log Error", "type": "main", "index": 0 }]]
+    },
+    "Log Error": {
+      "main": [[{ "node": "Verify Logged?", "type": "main", "index": 0 }]]
+    },
+    "Verify Logged?": {
+      "main": [
+        [{ "node": "Final Summary", "type": "main", "index": 0 }],
+        [{ "node": "Escalate", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}
