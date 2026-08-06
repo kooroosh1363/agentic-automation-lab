@@ -1,0 +1,165 @@
+{
+  "name": "n8n Infrastructure Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "minutes", "minutesInterval": 1 }
+          ]
+        }
+      },
+      "id": "every-minute",
+      "name": "Every Minute",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [-680, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.N8N_METRICS_URL }}/metrics",
+        "options": { "timeout": 10000 }
+      },
+      "id": "fetch-metrics",
+      "name": "Fetch n8n Metrics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-460, 300],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Prometheus-format metrics text\nconst metricsText = $input.first().json.data || '';\nconst lines = metricsText.split('\\n');\n\nlet memoryBytes = 0;\nlet activeWorkflows = 0;\nlet queueSize = 0;\n\nfor (const line of lines) {\n  if (line.startsWith('process_resident_memory_bytes')) {\n    memoryBytes = parseFloat(line.split(' ')[1]) || 0;\n  }\n  if (line.startsWith('n8n_active_workflows')) {\n    activeWorkflows = parseFloat(line.split(' ')[1]) || 0;\n  }\n  if (line.startsWith('bull_queue_waiting') || line.startsWith('n8n_queue_size')) {\n    queueSize = parseFloat(line.split(' ')[1]) || 0;\n  }\n}\n\nconst memoryMB = memoryBytes / (1024 * 1024);\nconst memoryUsagePercent = Math.min(100, (memoryMB / 512) * 100);\n\nreturn [{ json: {\n  memoryMB: Math.round(memoryMB),\n  memoryUsagePercent: Math.round(memoryUsagePercent),\n  activeWorkflows: activeWorkflows,\n  queueSize: queueSize,\n  timestamp: new Date().toISOString()\n}}];"
+      },
+      "id": "parse-metrics",
+      "name": "Parse Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            { "value1": "={{ $json.memoryUsagePercent }}", "operation": "larger", "value2": 80 }
+          ]
+        }
+      },
+      "id": "memory-critical",
+      "name": "Memory Critical?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [-20, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DOCKER_API_URL }}/containers/{{ $env.WORKER_CONTAINER_NAME }}/restart",
+        "options": { "timeout": 30000 }
+      },
+      "id": "restart-worker",
+      "name": "Restart Worker via Docker",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [200, 100],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log the auto-remediation action\nreturn [{ json: {\n  action: 'WORKER_RESTARTED',\n  reason: 'Memory usage exceeded 80%',\n  memoryPercent: $('Parse Metrics').item.json.memoryUsagePercent,\n  timestamp: new Date().toISOString()\n}}];"
+      },
+      "id": "log-action",
+      "name": "Log Action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            { "value1": "={{ $json.queueSize }}", "operation": "larger", "value2": 100 }
+          ]
+        }
+      },
+      "id": "queue-high",
+      "name": "Queue Overloaded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [-20, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: `⚠️ WARNING: n8n queue size is ${$json.queueSize}. Consider scaling workers.` }) }}",
+        "options": {}
+      },
+      "id": "send-warning",
+      "name": "Send Warning Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [200, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "// All systems healthy\nreturn [{ json: {\n  action: 'HEALTHY',\n  memoryPercent: $('Parse Metrics').item.json.memoryUsagePercent,\n  queueSize: $('Parse Metrics').item.json.queueSize,\n  timestamp: new Date().toISOString()\n}}];"
+      },
+      "id": "all-healthy",
+      "name": "All Healthy",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [200, 500]
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "options": {}
+      },
+      "id": "merge-results",
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate final health report\nconst items = $input.all();\nconst actions = items.map(i => i.json.action);\nconst hasRestart = actions.includes('WORKER_RESTARTED');\nconst hasWarning = actions.includes('HEALTHY') === false;\n\nreturn [{ json: {\n  reportTime: new Date().toISOString(),\n  actionsTaken: actions,\n  overallStatus: hasRestart ? 'REMEDIATED' : (hasWarning ? 'WARNING' : 'HEALTHY')\n}}];"
+      },
+      "id": "health-report",
+      "name": "Generate Health Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300]
+    }
+  ],
+  "connections": {
+    "Every Minute": { "main": [[{ "node": "Fetch n8n Metrics", "type": "main", "index": 0 }]] },
+    "Fetch n8n Metrics": { "main": [[{ "node": "Parse Metrics", "type": "main", "index": 0 }]] },
+    "Parse Metrics": { "main": [[{ "node": "Memory Critical?", "type": "main", "index": 0 }]] },
+    "Memory Critical?": {
+      "main": [
+        [{ "node": "Restart Worker via Docker", "type": "main", "index": 0 }],
+        [{ "node": "Queue Overloaded?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Restart Worker via Docker": { "main": [[{ "node": "Log Action", "type": "main", "index": 0 }]] },
+    "Log Action": { "main": [[{ "node": "Merge Results", "type": "main", "index": 0 }]] },
+    "Queue Overloaded?": {
+      "main": [
+        [{ "node": "Send Warning Alert", "type": "main", "index": 0 }],
+        [{ "node": "All Healthy", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Warning Alert": { "main": [[{ "node": "Merge Results", "type": "main", "index": 1 }]] },
+    "All Healthy": { "main": [[{ "node": "Merge Results", "type": "main", "index": 2 }]] },
+    "Merge Results": { "main": [[{ "node": "Generate Health Report", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

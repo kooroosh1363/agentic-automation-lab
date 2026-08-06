@@ -1,0 +1,13 @@
+# Environment variables (NEVER commit secrets)
+.env
+
+# Prometheus and Grafana data
+prometheus_data/
+grafana_data/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
