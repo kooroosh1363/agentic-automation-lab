@@ -1,0 +1,37 @@
+{
+  "name": "n8n-nodes-zarinpal",
+  "version": "1.0.0",
+  "description": "n8n community node for Zarinpal Iranian payment gateway (IPG v4)",
+  "keywords": [
+    "n8n-community-node-package",
+    "zarinpal",
+    "payment",
+    "iran",
+    "ipg"
+  ],
+  "license": "MIT",
+  "main": "dist/nodes/Zarinpal/Zarinpal.node.js",
+  "scripts": {
+    "build": "tsc && node -e \"require('fs').cpSync('nodes/Zarinpal/zarinpal.svg','dist/nodes/Zarinpal/zarinpal.svg')\"",
+    "dev": "tsc --watch"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "version": 1,
+    "nodes": [
+      "dist/nodes/Zarinpal/Zarinpal.node.js"
+    ],
+    "credentials": [
+      "dist/credentials/ZarinpalApi.credentials.js"
+    ]
+  },
+  "dependencies": {
+    "n8n-workflow": "*"
+  },
+  "devDependencies": {
+    "typescript": "~5.3.3",
+    "n8n-core": "*"
+  }
+}
