@@ -1,0 +1,38 @@
+{
+  "name": "n8n-nodes-bale-eitaa",
+  "version": "1.0.0",
+  "description": "n8n community trigger node for Iranian messengers Bale and Eitaa using long-polling",
+  "keywords": [
+    "n8n-community-node-package",
+    "bale",
+    "eitaa",
+    "iran",
+    "messenger",
+    "trigger"
+  ],
+  "license": "MIT",
+  "main": "dist/nodes/BaleEitaaTrigger/BaleEitaaTrigger.node.js",
+  "scripts": {
+    "build": "tsc && node -e \"require('fs').cpSync('nodes/BaleEitaaTrigger/baleeitaa.svg','dist/nodes/BaleEitaaTrigger/baleeitaa.svg')\"",
+    "dev": "tsc --watch"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "version": 1,
+    "nodes": [
+      "dist/nodes/BaleEitaaTrigger/BaleEitaaTrigger.node.js"
+    ],
+    "credentials": [
+      "dist/credentials/BaleEitaaBot.credentials.js"
+    ]
+  },
+  "dependencies": {
+    "n8n-workflow": "*"
+  },
+  "devDependencies": {
+    "typescript": "~5.3.3",
+    "n8n-core": "*"
+  }
+}
