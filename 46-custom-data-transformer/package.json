@@ -1,0 +1,42 @@
+{
+  "name": "n8n-nodes-data-transformer",
+  "version": "1.0.0",
+  "description": "n8n community node for advanced data transformation: flatten, deep merge, deduplicate, group by, select fields",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "data",
+    "transform",
+    "flatten",
+    "merge",
+    "groupby"
+  ],
+  "license": "MIT",
+  "author": "kooroosh1363",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kooroosh1363/n8n-workflows-practice.git"
+  },
+  "main": "dist/nodes/DataTransformer/DataTransformer.node.js",
+  "scripts": {
+    "build": "tsc && node -e \"require('fs').cpSync('nodes/DataTransformer/datatransformer.svg','dist/nodes/DataTransformer/datatransformer.svg')\"",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "version": 1,
+    "nodes": [
+      "dist/nodes/DataTransformer/DataTransformer.node.js"
+    ]
+  },
+  "dependencies": {
+    "n8n-workflow": "*"
+  },
+  "devDependencies": {
+    "typescript": "~5.3.3",
+    "n8n-core": "*"
+  }
+}

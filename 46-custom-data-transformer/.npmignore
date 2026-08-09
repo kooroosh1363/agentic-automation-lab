@@ -1,0 +1,17 @@
+# Source TypeScript files (only dist is published)
+nodes/**/*.ts
+tsconfig.json
+
+# Environment and local files
+.env
+.env.example
+.gitignore
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
