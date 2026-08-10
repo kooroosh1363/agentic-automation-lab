@@ -1,0 +1,40 @@
+{
+  "name": "n8n-nodes-github-enterprise",
+  "version": "1.0.0",
+  "description": "n8n community node with auto-pagination and exponential backoff rate limiting for GitHub API",
+  "keywords": [
+    "n8n-community-node-package",
+    "github",
+    "pagination",
+    "rate-limit",
+    "backoff",
+    "enterprise"
+  ],
+  "license": "MIT",
+  "author": "kooroosh1363",
+  "main": "dist/nodes/GithubEnterprise/GithubEnterprise.node.js",
+  "scripts": {
+    "build": "tsc && node -e \"require('fs').cpSync('nodes/GithubEnterprise/github.svg','dist/nodes/GithubEnterprise/github.svg')\"",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "version": 1,
+    "nodes": [
+      "dist/nodes/GithubEnterprise/GithubEnterprise.node.js"
+    ],
+    "credentials": [
+      "dist/credentials/GithubApi.credentials.js"
+    ]
+  },
+  "dependencies": {
+    "n8n-workflow": "*"
+  },
+  "devDependencies": {
+    "typescript": "~5.3.3",
+    "n8n-core": "*"
+  }
+}

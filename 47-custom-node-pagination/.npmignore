@@ -1,0 +1,11 @@
+nodes/**/*.ts
+credentials/**/*.ts
+tsconfig.json
+.env
+.env.example
+.gitignore
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
