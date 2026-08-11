@@ -1,0 +1,57 @@
+{
+  "name": "ETL Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "error-trigger",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [-680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const error = $input.item.json;\nconst workflow = error.workflow || {};\nconst execution = error.execution || {};\n\nreturn [{ json: {\n  severity: 'CRITICAL',\n  pipeline: workflow.name || 'Unknown',\n  errorMessage: execution.error?.message || 'Unknown error',\n  failedNode: execution.lastNodeExecuted || 'Unknown',\n  timestamp: new Date().toISOString()\n}}];"
+      },
+      "id": "format-error",
+      "name": "Format Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: `🚨 ETL FAILURE: Pipeline '${$json.pipeline}' failed at '${$json.failedNode}'. Error: ${$json.errorMessage}` }) }}",
+        "options": {}
+      },
+      "id": "alert-slack",
+      "name": "Alert Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "console.log('ETL ERROR LOG:', JSON.stringify($input.item.json, null, 2));\nreturn [{ json: { logged: true, timestamp: new Date().toISOString() } }];"
+      },
+      "id": "log-error",
+      "name": "Log Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-20, 300]
+    }
+  ],
+  "connections": {
+    "Error Trigger": { "main": [[{ "node": "Format Error", "type": "main", "index": 0 }]] },
+    "Format Error": { "main": [[{ "node": "Alert Slack", "type": "main", "index": 0 }]] },
+    "Alert Slack": { "main": [[{ "node": "Log Error", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

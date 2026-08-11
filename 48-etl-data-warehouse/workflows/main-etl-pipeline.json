@@ -1,0 +1,186 @@
+{
+  "name": "Multi-Source ETL Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [ { "field": "cronExpression", "expression": "0 1 * * *" } ] }
+      },
+      "id": "nightly-schedule",
+      "name": "Nightly Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [-900, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SOURCE_API_URL }}",
+        "options": { "timeout": 15000 }
+      },
+      "id": "extract-api",
+      "name": "Extract API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-680, 100],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT customer_id, full_name, email_address FROM ops.customers;"
+      },
+      "id": "extract-postgres",
+      "name": "Extract Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [-680, 300],
+      "credentials": { "postgres": { "id": "YOUR_PG_CRED_ID", "name": "Operational DB" } },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Simulate reading CSV rows from S3\nreturn [\n  { json: { userId: 'c-101', username: 'Sara', email: 'sara@example.com', source: 'csv' } },\n  { json: { userId: 'c-102', username: 'Reza', email: 'bad-email', source: 'csv' } },\n  { json: { userId: null, username: 'NoId', email: 'noid@example.com', source: 'csv' } }\n];"
+      },
+      "id": "extract-csv",
+      "name": "Extract CSV (S3)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-680, 500]
+    },
+    {
+      "parameters": { "mode": "append", "options": {} },
+      "id": "merge-a",
+      "name": "Merge Sources A",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [-460, 200]
+    },
+    {
+      "parameters": { "mode": "append", "options": {} },
+      "id": "merge-b",
+      "name": "Merge Sources B",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [-240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize heterogeneous sources into a unified schema and validate\nconst results = [];\nfor (const item of $input.all()) {\n  const raw = item.json;\n  const id = raw.id ?? raw.customer_id ?? raw.userId ?? null;\n  const name = raw.name ?? raw.full_name ?? raw.username ?? null;\n  const email = raw.email ?? raw.email_address ?? null;\n  const source = raw.source ?? 'unknown';\n\n  const errors = [];\n  if (id === null || id === undefined) errors.push('missing_id');\n  if (!name) errors.push('missing_name');\n  if (!email || !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)) errors.push('invalid_email');\n\n  results.push({ json: {\n    id, name, email, source,\n    valid: errors.length === 0,\n    errorReason: errors.join(',') || null,\n    raw\n  }});\n}\nreturn results;"
+      },
+      "id": "normalize-validate",
+      "name": "Normalize & Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-20, 300]
+    },
+    {
+      "parameters": {
+        "conditions": { "boolean": [ { "value1": "={{ $json.valid }}", "value2": true } ] }
+      },
+      "id": "is-valid",
+      "name": "Is Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": { "batchSize": 100, "options": {} },
+      "id": "batch-load",
+      "name": "Batch Load",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [420, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO warehouse.customers (id, name, email, source, updated_at)\nVALUES ($1, $2, $3, $4, NOW())\nON CONFLICT (id) DO UPDATE SET\n  name = EXCLUDED.name,\n  email = EXCLUDED.email,\n  source = EXCLUDED.source,\n  updated_at = NOW();",
+        "queryParameters": {
+          "parameters": [
+            { "name": "1", "value": "={{ $json.id }}" },
+            { "name": "2", "value": "={{ $json.name }}" },
+            { "name": "3", "value": "={{ $json.email }}" },
+            { "name": "4", "value": "={{ $json.source }}" }
+          ]
+        }
+      },
+      "id": "upsert-warehouse",
+      "name": "Upsert to Warehouse",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [640, 120],
+      "credentials": { "postgres": { "id": "YOUR_PG_CRED_ID", "name": "Data Warehouse" } },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO warehouse.dead_letter_queue (raw_record, error_reason, created_at)\nVALUES ($1::jsonb, $2, NOW());",
+        "queryParameters": {
+          "parameters": [
+            { "name": "1", "value": "={{ JSON.stringify($json.raw) }}" },
+            { "name": "2", "value": "={{ $json.errorReason }}" }
+          ]
+        }
+      },
+      "id": "send-dlq",
+      "name": "Send to DLQ",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [420, 450],
+      "credentials": { "postgres": { "id": "YOUR_PG_CRED_ID", "name": "Data Warehouse" } }
+    },
+    {
+      "parameters": { "mode": "append", "options": {} },
+      "id": "merge-results",
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Final ETL report\nconst items = $input.all();\nconst loaded = items.filter(i => i.json.id && i.json.valid !== false).length;\nconst dlq = items.filter(i => i.json.errorReason).length;\n\nreturn [{ json: {\n  reportTime: new Date().toISOString(),\n  totalProcessed: items.length,\n  loadedToWarehouse: loaded,\n  sentToDlq: dlq,\n  status: 'COMPLETED'\n}}];"
+      },
+      "id": "final-report",
+      "name": "Final Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 300]
+    }
+  ],
+  "connections": {
+    "Nightly Schedule": {
+      "main": [
+        [{ "node": "Extract API", "type": "main", "index": 0 }],
+        [{ "node": "Extract Postgres", "type": "main", "index": 0 }],
+        [{ "node": "Extract CSV (S3)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Extract API": { "main": [[{ "node": "Merge Sources A", "type": "main", "index": 0 }]] },
+    "Extract Postgres": { "main": [[{ "node": "Merge Sources A", "type": "main", "index": 1 }]] },
+    "Merge Sources A": { "main": [[{ "node": "Merge Sources B", "type": "main", "index": 0 }]] },
+    "Extract CSV (S3)": { "main": [[{ "node": "Merge Sources B", "type": "main", "index": 1 }]] },
+    "Merge Sources B": { "main": [[{ "node": "Normalize & Validate", "type": "main", "index": 0 }]] },
+    "Normalize & Validate": { "main": [[{ "node": "Is Valid?", "type": "main", "index": 0 }]] },
+    "Is Valid?": {
+      "main": [
+        [{ "node": "Batch Load", "type": "main", "index": 0 }],
+        [{ "node": "Send to DLQ", "type": "main", "index": 0 }]
+      ]
+    },
+    "Batch Load": {
+      "main": [
+        [{ "node": "Merge Results", "type": "main", "index": 0 }],
+        [{ "node": "Upsert to Warehouse", "type": "main", "index": 0 }]
+      ]
+    },
+    "Upsert to Warehouse": { "main": [[{ "node": "Batch Load", "type": "main", "index": 0 }]] },
+    "Send to DLQ": { "main": [[{ "node": "Merge Results", "type": "main", "index": 1 }]] },
+    "Merge Results": { "main": [[{ "node": "Final Report", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "YOUR_ERROR_WORKFLOW_ID" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}
