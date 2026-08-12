@@ -1,178 +1,152 @@
-\# 🤖 n8n Workflow Practice - 10 Advanced AI-Powered Automations
-
-
+# 🤖 Agentic Automation Lab
 
 <div align="center">
 
+### From Workflow Automation to Production-Grade Agentic Systems
 
+**49 Projects · AI Agents · RAG · Multi-Agent Systems · Data Engineering · Production Infrastructure**
 
-!\[n8n](https://img.shields.io/badge/n8n-Workflow\_Automation-FF6D5A?style=for-the-badge\&logo=n8n\&logoColor=white)
+![n8n](https://img.shields.io/badge/n8n-Workflow_Automation-FF6D5A?style=for-the-badge&logo=n8n&logoColor=white)
+![AI](https://img.shields.io/badge/AI-Agentic_Systems-6C63FF?style=for-the-badge)
+![RAG](https://img.shields.io/badge/RAG-Knowledge_Systems-0A66C2?style=for-the-badge)
+![Data](https://img.shields.io/badge/Data-ETL_%26_PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
+![Projects](https://img.shields.io/badge/Projects-49-2EA44F?style=for-the-badge)
 
-!\[OpenAI](https://img.shields.io/badge/OpenAI-GPT\_4-10A37F?style=for-the-badge\&logo=openai\&logoColor=white)
-
-!\[Google Sheets](https://img.shields.io/badge/Google\_Sheets-Database-34A853?style=for-the-badge\&logo=google-sheets\&logoColor=white)
-
-!\[AI Powered](https://img.shields.io/badge/AI-Powered-blue?style=for-the-badge)
-
-!\[10 Workflows](https://img.shields.io/badge/Workflows-10-green?style=for-the-badge)
-
-
-
-\*\*A comprehensive collection of 10 production-ready n8n workflows demonstrating advanced automation, AI integration, and business process optimization.\*\*
-
-
+*A progressive engineering portfolio covering automation, AI-assisted decision systems, retrieval-augmented generation, multi-agent orchestration, production n8n infrastructure, custom nodes, and data engineering.*
 
 </div>
 
+---
+
+## 🧭 Engineering Progression
+
+This repository is intentionally structured as a progression from practical workflow automation to more advanced intelligent and production-oriented systems.
+
+**Automation Foundations** → **Business & AI-Enhanced Automation** → **AI Decision & Enterprise Automation** → **RAG & Agentic Systems** → **Production n8n Engineering** → **Data & Intelligent Operations**
+
+The projects move beyond isolated demos: later systems emphasize orchestration, reliability, human-in-the-loop controls, retrieval, multi-agent coordination, infrastructure, observability, and resilient data pipelines.
+
+---
+
+## 📚 Project Directory
+
+| # | Project | Focus |
+|---:|---|---|
+| 01 | [Lead Capture](01-lead-capture/) | Webhook & lead ingestion |
+| 02 | [Email Automation](02-email-automation/) | Messaging automation |
+| 03 | [AI Support System](03-ai-support-system/) | AI customer support |
+| 04 | [Price Monitoring](04-price-monitoring/) | Monitoring & alerts |
+| 05 | [Content Automation](05-content-automation/) | AI content workflows |
+| 06 | [E-commerce Order Processing](06-ecommerce-order-processing/) | Orders & fraud checks |
+| 07 | [Sentiment Analysis](07-sentiment-analysis/) | NLP & smart routing |
+| 08 | [Lead Scoring](08-lead-scoring/) | Qualification & enrichment |
+| 09 | [Recruitment Automation](09-recruitment-automation/) | HR & AI screening |
+| 10 | [Data Analytics Dashboard](10-data-analytics-dashboard/) | KPI & BI automation |
+| 11 | [Smart Contract Management](11-smart-contract-management/) | Contract workflows |
+| 12 | [Invoice Processing Automation](12-invoice-processing-automation/) | Finance automation |
+| 13 | [Social Media Automation](13-social-media-automation/) | Multi-channel publishing |
+| 14 | [Smart Patient Care Automation](14-smart-patient-care-automation/) | Healthcare workflows |
+| 15 | [Smart Event & Conference Management](15-smart-event-conference-management/) | Event orchestration |
+| 16 | [Smart Building Management](16-smart-building-management/) | Building operations |
+| 17 | [Smart Project Management](17-smart-project-management/) | Project operations |
+| 18 | [Smart LMS Education Automation](18-smart-lms-education-automation/) | Education automation |
+| 19 | [Smart Supply Chain & Inventory](19-smart-supply-chain-inventory/) | Inventory intelligence |
+| 20 | [Smart Customer Success & Churn Prevention](20-smart-customer-success-churn-prevention/) | Churn & retention |
+| 21 | [AI Resume Screening with Supabase](21-ai-resume-screening-supabase/) | AI screening & database |
+| 22 | [E-commerce ETL, KPI & Postgres](22-ecommerce-etl-kpi-postgres/) | ETL & analytics |
+| 23 | [AI Support Ticket Routing & Escalation](23-ai-support-ticket-routing-escalation/) | Classification & escalation |
+| 24 | [HVAC Field Service Orchestration](24-hvac-field-service-orchestration/) | Field-service operations |
+| 25 | [Multi-DB Bidirectional Sync](25-multi-db-bidirectional-sync-conflict-resolution/) | Sync & conflict resolution |
+| 26 | [AI Customer Churn Prediction & Retention](26-ai-customer-churn-prediction-retention/) | Predictive retention |
+| 27 | [AI Invoice OCR & Anomaly Detection](27-ai-invoice-ocr-anomaly-detection/) | OCR & anomaly detection |
+| 28 | [BI ETL KPI Dashboard & Reporting](28-bi-etl-kpi-dashboard-automated-reporting/) | BI & automated reporting |
+| 29 | [AI Hyper-Personalized Marketing](29-ai-hyper-personalized-multi-channel-marketing/) | Personalization & channels |
+| 30 | [AI RAG Proposal & Contract Generation](30-ai-rag-automated-proposal-contract-generation/) | RAG & document generation |
+| 31 | [GDPR Compliance Auditor](31-gdpr-compliance-auditor/) | Compliance automation |
+| 32 | [Dynamic Pricing Intelligence](32-dynamic-pricing-intelligence/) | Pricing intelligence |
+| 33 | [SaaS Onboarding Engine](33-saas-onboarding-engine/) | Customer onboarding |
+| 34 | [AI Content Repurposing](34-ai-content-repurposing/) | Generative content pipeline |
+| 35 | [AI Multilingual Support with RAG](35-ai-multilingual-support-rag/) | Multilingual RAG support |
+| 36 | [AI Sales Outreach & Enrichment](36-ai-sales-outreach-enrichment/) | Sales intelligence |
+| 37 | [AI Competitive Intelligence](37-ai-competitive-intelligence/) | Research & intelligence |
+| 38 | [AI Document Processing](38-ai-document-processing/) | Intelligent documents |
+| 39 | [AI Meeting Intelligence](39-ai-meeting-intelligence/) | Meeting analysis |
+| 40 | [AI Multi-Agent Market Research](40-ai-multi-agent-market-research/) | Multi-agent orchestration |
+| 41 | [n8n High-Availability Cluster](41-n8n-ha-cluster/) | HA infrastructure |
+| 42 | [n8n Backup System](42-n8n-backup-system/) | Backup & recovery |
+| 43 | [n8n Monitoring Dashboard](43-n8n-monitoring-dashboard/) | Observability |
+| 44 | [Custom Node — Zarinpal](44-custom-node-zarinpal/) | Custom payment node |
+| 45 | [Custom Trigger — Bale](45-custom-trigger-bale/) | Custom trigger development |
+| 46 | [Custom Data Transformer](46-custom-data-transformer/) | Custom data processing |
+| 47 | [Custom Node Pagination](47-custom-node-pagination/) | API pagination patterns |
+| 48 | [ETL Data Warehouse](48-etl-data-warehouse/) | ETL · DLQ · Data Engineering |
+| 49 | [AI Ticket Triage](49-ai-ticket-triage/) | LLM · HITL · Safe Automation |
+
+---
+
+## ⭐ Featured Systems
+
+### [20 — Smart Customer Success & Churn Prevention](20-smart-customer-success-churn-prevention/)
+Customer-health and churn-prevention automation combining signals, decision logic, and proactive retention workflows.
+
+### [30 — AI RAG Proposal & Contract Generation](30-ai-rag-automated-proposal-contract-generation/)
+Retrieval-augmented generation pipeline for grounded proposal and contract creation using business knowledge.
+
+### [35 — Multilingual Customer Support with RAG](35-ai-multilingual-support-rag/)
+Knowledge-grounded multilingual support architecture designed for more accurate, context-aware responses.
+
+### [40 — Multi-Agent Market Research System](40-ai-multi-agent-market-research/)
+A multi-agent research workflow that decomposes research tasks, coordinates specialized roles, and synthesizes findings.
+
+### [41 — High-Availability n8n Cluster](41-n8n-ha-cluster/)
+Production-oriented n8n infrastructure focused on availability, scaling, queue-based execution, and operational resilience.
+
+### [48 — Multi-Source ETL Data Warehouse Pipeline](48-etl-data-warehouse/)
+A resilient data-engineering workflow covering ingestion, transformation, warehouse loading, failure handling, and DLQ patterns.
+
+### [49 — AI Ticket Triage & Smart Response](49-ai-ticket-triage/)
+LLM-assisted ticket classification and response workflow with confidence-aware routing and human-in-the-loop safety controls.
+
+---
+
+## 🧠 Core Engineering Themes
+
+- **Workflow Orchestration:** event-driven automation, APIs, webhooks, scheduling, branching, and multi-step business processes
+- **Applied AI:** classification, extraction, summarization, scoring, anomaly detection, personalization, and decision support
+- **RAG & Knowledge Systems:** retrieval-grounded generation for support, proposals, contracts, and enterprise knowledge workflows
+- **Agentic Systems:** task decomposition, specialized agents, orchestration, synthesis, and controlled autonomy
+- **Human-in-the-Loop:** escalation paths, confidence thresholds, review gates, and safe automation boundaries
+- **Data Engineering:** ETL, PostgreSQL, synchronization, KPI pipelines, warehouses, and dead-letter handling
+- **Production Engineering:** high availability, backup, monitoring, observability, resilience, and custom n8n extensions
 
+---
 
-\---
+## 🏗️ Repository Structure
 
+Each numbered directory represents an independent project. Projects typically include the workflow or implementation artifacts together with project-specific documentation and, where available, supporting screenshots or diagrams.
 
+```text
+agentic-automation-lab/
+├── 01-lead-capture/
+├── 02-email-automation/
+├── ...
+├── 40-ai-multi-agent-market-research/
+├── 41-n8n-ha-cluster/
+├── ...
+├── 48-etl-data-warehouse/
+└── 49-ai-ticket-triage/
+```
 
-\## 📌 About This Project
+---
 
+## 🎯 Portfolio Goal
 
+The goal of this lab is to demonstrate a practical engineering path from **automation builder** to **AI automation and agentic systems engineer**: designing systems that do not simply connect applications, but can retrieve context, make bounded decisions, coordinate specialized components, recover from failures, and operate with production-aware safeguards.
 
-This repository contains \*\*10 advanced n8n workflows\*\* that demonstrate real-world automation scenarios using AI, APIs, and multi-channel integrations. Each workflow is designed to solve specific business problems and can be customized for production use.
+---
 
+<div align="center">
 
+**Built as a progressive lab for automation, AI systems, agentic workflows, and production engineering.**
 
-\## 🎯 What You'll Learn
-
-
-
-\- ✅ \*\*AI Integration\*\* (OpenAI GPT-4 for analysis, scoring, and content generation)
-
-\- ✅ \*\*Multi-Channel Automation\*\* (Email, Slack, Telegram, SMS)
-
-\- ✅ \*\*Data Processing\*\* (Google Sheets, APIs, Webhooks)
-
-\- ✅ \*\*Conditional Logic\*\* (IF/ELSE branching, error handling)
-
-\- ✅ \*\*Web Scraping \& HTTP Requests\*\*
-
-\- ✅ \*\*Calendar Integration\*\* (Google Calendar)
-
-\- ✅ \*\*CRM \& Lead Management\*\*
-
-\- ✅ \*\*Business Intelligence \& Analytics\*\*
-
-
-
-\---
-
-
-
-\## 📚 Workflow List
-
-
-
-\### 1️⃣ \[Lead Capture System](01-lead-capture/)
-
-\*\*Simple webhook-based lead collection with email notifications\*\*
-
-\- Webhook trigger → Google Sheets → Email notification
-
-\- Perfect for beginners
-
-
-
-\### 2️⃣ \[Email Automation](02-email-automation/)
-
-\*\*Daily order processing from Google Sheets with email confirmations\*\*
-
-\- Schedule Trigger → Google Sheets → Filter → Email → Telegram report
-
-\- Learn: Schedule triggers, filtering, multi-step automation
-
-
-
-\### 3️⃣ \[AI Support System](03-ai-support-system/)
-
-\*\*Smart ticket routing powered by OpenAI GPT-4\*\*
-
-\- Webhook → AI Analysis → Priority Check → Slack/Email routing
-
-\- Learn: AI classification, conditional branching
-
-
-
-\### 4️⃣ \[Price Monitoring](04-price-monitoring/)
-
-\*\*Competitor price tracking with AI-powered insights\*\*
-
-\- Web Scraping → Historical comparison → AI analysis → Alerts
-
-\- Learn: HTTP requests, data comparison, anomaly detection
-
-
-
-\### 5️⃣ \[Content Automation](05-content-automation/)
-
-\*\*AI-powered multi-channel content publishing\*\*
-
-\- News scraping → Blog generation → Twitter/LinkedIn/WordPress publishing
-
-\- Learn: Content generation, multi-platform publishing
-
-
-
-\### 6️⃣ \[E-commerce Order Processing](06-ecommerce-order-processing/)
-
-\*\*Complete order system with AI fraud detection\*\*
-
-\- Webhook → Validation → Inventory check → AI fraud detection → Payment processing
-
-\- Learn: Multi-step validation, fraud detection, payment integration
-
-
-
-\### 7️⃣ \[Sentiment Analysis](07-sentiment-analysis/)
-
-\*\*Multi-source customer feedback analysis with NLP\*\*
-
-\- Webhook/Email/Social Media → AI sentiment analysis → Smart routing
-
-\- Learn: NLP, emotion detection, multi-source data collection
-
-
-
-\### 8️⃣ \[Lead Scoring System](08-lead-scoring/)
-
-\*\*B2B lead qualification with AI scoring and enrichment\*\*
-
-\- Lead enrichment → Multi-dimensional scoring → Smart routing (Hot/Warm/Cold)
-
-\- Learn: Lead enrichment, scoring algorithms, sales automation
-
-
-
-\### 9️⃣ \[Recruitment Automation](09-recruitment-automation/)
-
-\*\*AI-powered HR system with resume analysis and interview scheduling\*\*
-
-\- Application webhook → AI resume parsing → Scoring → Calendar integration
-
-\- Learn: Resume parsing, calendar integration, HR automation
-
-
-
-\### 🔟 \[Data Analytics Dashboard](10-data-analytics-dashboard/)
-
-\*\*Business intelligence with AI insights and multi-channel reporting\*\*
-
-\- Multi-source data → KPI calculation → AI analysis → Dashboard \& reports
-
-\- Learn: Data pipelines, KPI calculation, business intelligence
-
-
-
-\---
-
-
-
-\## 🏗️ Project Structure
-
-
-
+</div>
