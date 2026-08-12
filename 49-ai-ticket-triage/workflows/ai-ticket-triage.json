@@ -1,0 +1,252 @@
+{
+  "name": "AI Ticket Triage & Smart Response",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-ticket",
+        "options": {}
+      },
+      "id": "ticket-webhook",
+      "name": "Ticket Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [-1100, 300],
+      "webhookId": "ai-ticket-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize incoming ticket payload\nconst body = $input.first().json.body || $input.first().json;\nreturn [{ json: {\n  ticketId: body.ticket_id || body.id || 'unknown',\n  subject: body.subject || '',\n  message: body.message || body.body || '',\n  customerEmail: body.customer_email || body.email || ''\n}}];"
+      },
+      "id": "parse-ticket",
+      "name": "Parse Ticket",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-880, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.OPENAI_API_URL }}/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer {{ $env.OPENAI_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4o-mini', response_format: { type: 'json_object' }, messages: [ { role: 'system', content: 'You are a support triage engine. Reply ONLY with JSON: {\"priority\":\"critical|high|normal|low\",\"category\":\"billing|technical|account|other\",\"sentiment\":\"positive|neutral|negative\",\"confidence\":0.0-1.0}' }, { role: 'user', content: `Subject: ${$json.subject}\\nMessage: ${$json.message}` } ] }) }}",
+        "options": {}
+      },
+      "id": "ai-classify",
+      "name": "AI Classify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-660, 300],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the LLM JSON output safely\nconst raw = $input.first().json.choices?.[0]?.message?.content || '{}';\nlet parsed = {};\ntry { parsed = JSON.parse(raw); } catch (e) { parsed = {}; }\n\nconst priority = parsed.priority || 'normal';\nreturn [{ json: {\n  ...$('Parse Ticket').item.json,\n  priority,\n  category: parsed.category || 'other',\n  sentiment: parsed.sentiment || 'neutral',\n  confidence: Number(parsed.confidence) || 0,\n  sensitive: priority === 'critical' || priority === 'high'\n}}];"
+      },
+      "id": "parse-ai",
+      "name": "Parse AI Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [ { "value1": "={{ $json.confidence }}", "operation": "largerEqual", "value2": 0.7 } ]
+        }
+      },
+      "id": "confident",
+      "name": "Confident?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [-220, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: `🤔 Low-confidence ticket ${$json.ticketId} needs manual triage (confidence ${$json.confidence}).` }) }}",
+        "options": {}
+      },
+      "id": "escalate-low",
+      "name": "Escalate Low Confidence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [0, 450]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [ { "value1": "={{ $json.sensitive }}", "value2": true } ]
+        }
+      },
+      "id": "sensitive",
+      "name": "Sensitive?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.OPENAI_API_URL }}/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer {{ $env.OPENAI_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [ { role: 'system', content: 'Draft a professional, empathetic support reply. This is a SENSITIVE ticket requiring human approval.' }, { role: 'user', content: `Subject: ${$json.subject}\\nMessage: ${$json.message}` } ] }) }}",
+        "options": {}
+      },
+      "id": "gen-draft",
+      "name": "Generate Draft (Sensitive)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [220, 100]
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {}
+      },
+      "id": "wait-approval",
+      "name": "Wait for Approval",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [440, 100],
+      "webhookId": "approval-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nreturn [{ json: { approved: body.approved === true || body.approved === 'true' } }];"
+      },
+      "id": "read-approval",
+      "name": "Read Approval",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [ { "value1": "={{ $json.approved }}", "value2": true } ]
+        }
+      },
+      "id": "approved",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [880, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.TICKET_API_URL }}/tickets/{{ $json.ticketId }}/reply",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ reply: $('Generate Draft (Sensitive)').item.json.choices?.[0]?.message?.content || '', status: 'answered' }) }}",
+        "options": {}
+      },
+      "id": "send-approved",
+      "name": "Send Approved Response",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1100, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: `❌ AI draft for ticket rejected. Agent must respond manually.` }) }}",
+        "options": {}
+      },
+      "id": "notify-reject",
+      "name": "Notify Rejection",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1100, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.OPENAI_API_URL }}/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer {{ $env.OPENAI_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4o-mini', messages: [ { role: 'system', content: 'Write a concise, friendly support reply for a routine ticket.' }, { role: 'user', content: `Subject: ${$json.subject}\\nMessage: ${$json.message}` } ] }) }}",
+        "options": {}
+      },
+      "id": "gen-auto",
+      "name": "Generate Auto Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [220, 350]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.TICKET_API_URL }}/tickets/{{ $json.ticketId }}/reply",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ reply: $('Generate Auto Reply').item.json.choices?.[0]?.message?.content || '', status: 'answered' }) }}",
+        "options": {}
+      },
+      "id": "send-auto",
+      "name": "Send Auto Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [440, 350]
+    }
+  ],
+  "connections": {
+    "Ticket Webhook": { "main": [[{ "node": "Parse Ticket", "type": "main", "index": 0 }]] },
+    "Parse Ticket": { "main": [[{ "node": "AI Classify", "type": "main", "index": 0 }]] },
+    "AI Classify": { "main": [[{ "node": "Parse AI Output", "type": "main", "index": 0 }]] },
+    "Parse AI Output": { "main": [[{ "node": "Confident?", "type": "main", "index": 0 }]] },
+    "Confident?": {
+      "main": [
+        [{ "node": "Sensitive?", "type": "main", "index": 0 }],
+        [{ "node": "Escalate Low Confidence", "type": "main", "index": 0 }]
+      ]
+    },
+    "Sensitive?": {
+      "main": [
+        [{ "node": "Generate Draft (Sensitive)", "type": "main", "index": 0 }],
+        [{ "node": "Generate Auto Reply", "type": "main", "index": 0 }]
+      ]
+    },
+    "Generate Draft (Sensitive)": { "main": [[{ "node": "Wait for Approval", "type": "main", "index": 0 }]] },
+    "Wait for Approval": { "main": [[{ "node": "Read Approval", "type": "main", "index": 0 }]] },
+    "Read Approval": { "main": [[{ "node": "Approved?", "type": "main", "index": 0 }]] },
+    "Approved?": {
+      "main": [
+        [{ "node": "Send Approved Response", "type": "main", "index": 0 }],
+        [{ "node": "Notify Rejection", "type": "main", "index": 0 }]
+      ]
+    },
+    "Generate Auto Reply": { "main": [[{ "node": "Send Auto Reply", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "YOUR_ERROR_WORKFLOW_ID" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}
