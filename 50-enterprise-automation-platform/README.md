@@ -61,6 +61,12 @@ graph TD
 
 ---
 
+## Workflow Preview
+
+![Enterprise Automation Platform workflow overview](./screenshots/workflow-overview.png)
+
+---
+
 ## Features
 
 - **Master Orchestrator** that coordinates three sub-workflows via `Execute Workflow`
