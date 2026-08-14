@@ -1,0 +1,98 @@
+{
+  "name": "Sub: ETL & Warehouse",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "wf-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [-660, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst errors = [];\nif (!raw.requestId) errors.push('missing_id');\nif (!raw.customerEmail || !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(raw.customerEmail)) errors.push('invalid_email');\n\nreturn [{ json: { ...raw, valid: errors.length === 0, errorReason: errors.join(',') || null } }];"
+      },
+      "id": "validate",
+      "name": "Validate Record",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": { "boolean": [ { "value1": "={{ $json.valid }}", "value2": true } ] }
+      },
+      "id": "is-valid",
+      "name": "Is Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [-220, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO warehouse.requests (id, channel, priority, category, customer_email, updated_at)\nVALUES ($1, $2, $3, $4, $5, NOW())\nON CONFLICT (id) DO UPDATE SET priority=EXCLUDED.priority, category=EXCLUDED.category, updated_at=NOW();",
+        "queryParameters": {
+          "parameters": [
+            { "name": "1", "value": "={{ $json.requestId }}" },
+            { "name": "2", "value": "={{ $json.channel }}" },
+            { "name": "3", "value": "={{ $json.priority }}" },
+            { "name": "4", "value": "={{ $json.category }}" },
+            { "name": "5", "value": "={{ $json.customerEmail }}" }
+          ]
+        }
+      },
+      "id": "upsert",
+      "name": "Upsert to Warehouse",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [0, 200],
+      "credentials": { "postgres": { "id": "YOUR_PG_CRED_ID", "name": "Data Warehouse" } }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO warehouse.dead_letter_queue (raw_record, error_reason, created_at) VALUES ($1::jsonb, $2, NOW());",
+        "queryParameters": {
+          "parameters": [
+            { "name": "1", "value": "={{ JSON.stringify($json) }}" },
+            { "name": "2", "value": "={{ $json.errorReason }}" }
+          ]
+        }
+      },
+      "id": "dlq",
+      "name": "Send to DLQ",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [0, 420],
+      "credentials": { "postgres": { "id": "YOUR_PG_CRED_ID", "name": "Data Warehouse" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nreturn [{ json: { stage: 'ETL', stored: item.valid === true, dlq: item.valid === false } }];"
+      },
+      "id": "etl-summary",
+      "name": "ETL Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 300]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": { "main": [[{ "node": "Validate Record", "type": "main", "index": 0 }]] },
+    "Validate Record": { "main": [[{ "node": "Is Valid?", "type": "main", "index": 0 }]] },
+    "Is Valid?": {
+      "main": [
+        [{ "node": "Upsert to Warehouse", "type": "main", "index": 0 }],
+        [{ "node": "Send to DLQ", "type": "main", "index": 0 }]
+      ]
+    },
+    "Upsert to Warehouse": { "main": [[{ "node": "ETL Summary", "type": "main", "index": 0 }]] },
+    "Send to DLQ": { "main": [[{ "node": "ETL Summary", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

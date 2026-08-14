@@ -1,0 +1,94 @@
+{
+  "name": "Master Orchestrator",
+  "nodes": [
+    {
+      "parameters": { "httpMethod": "POST", "path": "platform", "options": {} },
+      "id": "platform-webhook",
+      "name": "Platform Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [-880, 300],
+      "webhookId": "platform-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nreturn [{ json: {\n  requestId: body.request_id || crypto.randomUUID(),\n  channel: body.channel || 'web',\n  subject: body.subject || '',\n  message: body.message || '',\n  customerEmail: body.customer_email || ''\n}}];"
+      },
+      "id": "prepare-request",
+      "name": "Prepare Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-660, 300]
+    },
+    {
+      "parameters": {
+        "workflowId": "SUB_INTAKE_AI_TRIAGE_ID",
+        "options": { "waitForSubWorkflow": true }
+      },
+      "id": "run-intake",
+      "name": "Run Intake & Triage",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [-440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": { "number": [ { "value1": "={{ $json.confidence }}", "operation": "largerEqual", "value2": 0.7 } ] }
+      },
+      "id": "triage-ok",
+      "name": "Triage OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [-220, 300]
+    },
+    {
+      "parameters": {
+        "workflowId": "SUB_ETL_WAREHOUSE_ID",
+        "options": { "waitForSubWorkflow": true }
+      },
+      "id": "run-etl",
+      "name": "Run ETL & Warehouse",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
+        "workflowId": "SUB_FULFILLMENT_ID",
+        "options": { "waitForSubWorkflow": true }
+      },
+      "id": "run-fulfillment",
+      "name": "Run Fulfillment",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [220, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn [{ json: {\n  reportTime: new Date().toISOString(),\n  stages: items.map(i => i.json),\n  platformStatus: 'COMPLETED'\n}}];"
+      },
+      "id": "aggregate-report",
+      "name": "Aggregate Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    }
+  ],
+  "connections": {
+    "Platform Webhook": { "main": [[{ "node": "Prepare Request", "type": "main", "index": 0 }]] },
+    "Prepare Request": { "main": [[{ "node": "Run Intake & Triage", "type": "main", "index": 0 }]] },
+    "Run Intake & Triage": { "main": [[{ "node": "Triage OK?", "type": "main", "index": 0 }]] },
+    "Triage OK?": {
+      "main": [
+        [{ "node": "Run ETL & Warehouse", "type": "main", "index": 0 }],
+        [{ "node": "Aggregate Report", "type": "main", "index": 0 }]
+      ]
+    },
+    "Run ETL & Warehouse": { "main": [[{ "node": "Run Fulfillment", "type": "main", "index": 0 }]] },
+    "Run Fulfillment": { "main": [[{ "node": "Aggregate Report", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "GLOBAL_ERROR_HANDLER_ID" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

@@ -1,0 +1,88 @@
+{
+  "name": "Sub: Fulfillment",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "wf-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [-660, 300]
+    },
+    {
+      "parameters": {
+        "conditions": { "boolean": [ { "value1": "={{ $json.sensitive }}", "value2": true } ] }
+      },
+      "id": "sensitive",
+      "name": "Sensitive?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [-440, 300]
+    },
+    {
+      "parameters": { "resume": "webhook", "options": {} },
+      "id": "wait-approval",
+      "name": "Wait for Approval",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [-220, 200],
+      "webhookId": "fulfillment-approval"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ACTION_API_URL }}/fulfill",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requestId: $('Execute Workflow Trigger').item.json.requestId, mode: 'approved' }) }}",
+        "options": {}
+      },
+      "id": "fulfill-approved",
+      "name": "Fulfill (Approved)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [0, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ACTION_API_URL }}/fulfill",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requestId: $json.requestId, mode: 'auto' }) }}",
+        "options": {}
+      },
+      "id": "fulfill-auto",
+      "name": "Fulfill (Auto)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-220, 420]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { stage: 'Fulfillment', completed: true, timestamp: new Date().toISOString() } }];"
+      },
+      "id": "fulfill-summary",
+      "name": "Fulfillment Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 300]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": { "main": [[{ "node": "Sensitive?", "type": "main", "index": 0 }]] },
+    "Sensitive?": {
+      "main": [
+        [{ "node": "Wait for Approval", "type": "main", "index": 0 }],
+        [{ "node": "Fulfill (Auto)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait for Approval": { "main": [[{ "node": "Fulfill (Approved)", "type": "main", "index": 0 }]] },
+    "Fulfill (Approved)": { "main": [[{ "node": "Fulfillment Summary", "type": "main", "index": 0 }]] },
+    "Fulfill (Auto)": { "main": [[{ "node": "Fulfillment Summary", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

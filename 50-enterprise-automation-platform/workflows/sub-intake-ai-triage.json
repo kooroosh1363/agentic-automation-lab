@@ -1,0 +1,49 @@
+{
+  "name": "Sub: Intake & AI Triage",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "wf-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [-660, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.OPENAI_API_URL }}/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [ { "name": "Authorization", "value": "Bearer {{ $env.OPENAI_API_KEY }}" } ] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4o-mini', response_format: { type: 'json_object' }, messages: [ { role: 'system', content: 'Reply ONLY with JSON: {\"priority\":\"critical|high|normal|low\",\"category\":\"string\",\"confidence\":0.0-1.0}' }, { role: 'user', content: `Subject: ${$json.subject}\\nMessage: ${$json.message}` } ] }) }}",
+        "options": {}
+      },
+      "id": "ai-classify",
+      "name": "AI Classify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-440, 300],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.choices?.[0]?.message?.content || '{}';\nlet p = {};\ntry { p = JSON.parse(raw); } catch (e) { p = {}; }\nconst priority = p.priority || 'normal';\n\nreturn [{ json: {\n  ...$('Execute Workflow Trigger').item.json,\n  priority,\n  category: p.category || 'other',\n  confidence: Number(p.confidence) || 0,\n  sensitive: priority === 'critical' || priority === 'high'\n}}];"
+      },
+      "id": "parse-ai",
+      "name": "Parse AI Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-220, 300]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": { "main": [[{ "node": "AI Classify", "type": "main", "index": 0 }]] },
+    "AI Classify": { "main": [[{ "node": "Parse AI Output", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}
