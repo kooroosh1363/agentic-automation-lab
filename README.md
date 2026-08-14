@@ -4,13 +4,13 @@
 
 ### From Workflow Automation to Production-Grade Agentic Systems
 
-**49 Projects · AI Agents · RAG · Multi-Agent Systems · Data Engineering · Production Infrastructure**
+**50 Projects · AI Agents · RAG · Multi-Agent Systems · Data Engineering · Production Infrastructure**
 
 ![n8n](https://img.shields.io/badge/n8n-Workflow_Automation-FF6D5A?style=for-the-badge&logo=n8n&logoColor=white)
 ![AI](https://img.shields.io/badge/AI-Agentic_Systems-6C63FF?style=for-the-badge)
 ![RAG](https://img.shields.io/badge/RAG-Knowledge_Systems-0A66C2?style=for-the-badge)
 ![Data](https://img.shields.io/badge/Data-ETL_%26_PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
-![Projects](https://img.shields.io/badge/Projects-49-2EA44F?style=for-the-badge)
+![Projects](https://img.shields.io/badge/Projects-50-2EA44F?style=for-the-badge)
 
 *A progressive engineering portfolio covering automation, AI-assisted decision systems, retrieval-augmented generation, multi-agent orchestration, production n8n infrastructure, custom nodes, and data engineering.*
 
@@ -81,6 +81,7 @@ The projects move beyond isolated demos: later systems emphasize orchestration, 
 | 47 | [Custom Node Pagination](47-custom-node-pagination/) | API pagination patterns |
 | 48 | [ETL Data Warehouse](48-etl-data-warehouse/) | ETL · DLQ · Data Engineering |
 | 49 | [AI Ticket Triage](49-ai-ticket-triage/) | LLM · HITL · Safe Automation |
+| 50 | [Enterprise Automation Platform](50-enterprise-automation-platform/) | Capstone · Orchestration · ETL · Observability |
 
 ---
 
@@ -106,6 +107,9 @@ A resilient data-engineering workflow covering ingestion, transformation, wareho
 
 ### [49 — AI Ticket Triage & Smart Response](49-ai-ticket-triage/)
 LLM-assisted ticket classification and response workflow with confidence-aware routing and human-in-the-loop safety controls.
+
+### [50 — Enterprise Automation Platform](50-enterprise-automation-platform/)
+Capstone reference architecture combining parent/child orchestration, safe AI triage, ETL with DLQ, explicit human approval, centralized error handling, and provisioned infrastructure monitoring.
 
 ---
 
@@ -134,7 +138,8 @@ agentic-automation-lab/
 ├── 41-n8n-ha-cluster/
 ├── ...
 ├── 48-etl-data-warehouse/
-└── 49-ai-ticket-triage/
+├── 49-ai-ticket-triage/
+└── 50-enterprise-automation-platform/
 ```
 
 ---

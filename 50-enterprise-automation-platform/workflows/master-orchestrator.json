@@ -65,7 +65,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nreturn [{ json: {\n  reportTime: new Date().toISOString(),\n  stages: items.map(i => i.json),\n  platformStatus: 'COMPLETED'\n}}];"
+        "jsCode": "const item = $input.first().json;\nconst completed = Number(item.confidence) >= 0.7;\nreturn [{ json: {\n  requestId: item.requestId,\n  reportTime: new Date().toISOString(),\n  stages: item.stages || [],\n  platformStatus: completed ? 'COMPLETED' : 'ESCALATED_LOW_CONFIDENCE'\n}}];"
       },
       "id": "aggregate-report",
       "name": "Aggregate Report",

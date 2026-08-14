@@ -1,0 +1,21 @@
+{
+  "title": "n8n Platform Overview",
+  "uid": "n8n-platform-overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "n8n scrape status",
+      "targets": [{ "expr": "up{job=\"n8n\"}", "refId": "A" }],
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Process CPU",
+      "targets": [{ "expr": "rate(process_cpu_seconds_total{job=\"n8n\"}[5m])", "refId": "A" }],
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 0 }
+    }
+  ]
+}
