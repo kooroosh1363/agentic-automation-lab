@@ -1,7 +1,7 @@
- Enterprise Automation Platform (Capstone)
+# Enterprise Automation Platform (Capstone)
 
 > Project 50 — the final capstone of the n8n Enterprise practice series
-> A unified automation platform that combines every concept from Projects 1–49:
+> A production-oriented reference platform that combines concepts from Projects 1–49:
 > orchestration, AI triage, ETL with DLQ, human-in-the-loop, observability, and infrastructure-as-code
 
 ---
@@ -68,7 +68,8 @@ graph TD
 - **ETL & Warehouse** sub-workflow with validation and Dead-Letter Queue
 - **Fulfillment** sub-workflow with Human-in-the-Loop approval for sensitive cases
 - **Global Error Handler** shared by all workflows
-- **Infrastructure as Code**: single `docker-compose` for n8n + PostgreSQL + Prometheus + Grafana
+- **Infrastructure as Code**: version-pinned n8n, PostgreSQL, Prometheus, and Grafana services
+- Automatic database schema initialization and provisioned monitoring datasource/dashboard
 - Idempotent upserts, fail-safe escalation, and platform-level reporting
 
 ---
@@ -93,7 +94,10 @@ graph TD
 │   ├── sub-fulfillment.json          # Child 3: action + approval
 │   └── global-error-handler.json     # Shared error handler
 ├── infrastructure/
-│   └── docker-compose.yml            # Full platform stack
+│   ├── docker-compose.yml            # Full platform stack
+│   ├── postgres/init.sql             # Warehouse and DLQ schema
+│   ├── prometheus/prometheus.yml     # n8n metrics scraping
+│   └── grafana/provisioning/         # Datasource and dashboard
 ├── screenshots/
 ├── README.md                         # This file
 ├── .gitignore
@@ -132,7 +136,9 @@ Services:
    - `SUB_ETL_WAREHOUSE_ID`
    - `SUB_FULFILLMENT_ID`
    - `GLOBAL_ERROR_HANDLER_ID`
-4. Activate the Master Orchestrator.
+4. Replace `GLOBAL_ERROR_HANDLER_ID` in every workflow setting.
+5. Configure the PostgreSQL credential placeholder in the ETL workflow.
+6. Activate all workflows, then activate the Master Orchestrator.
 
 ---
 
@@ -157,7 +163,7 @@ Classifies the request with an LLM and returns `priority`, `category`, `confiden
 Validates the record; valid records are upserted into `warehouse.requests`, invalid ones go to the DLQ.
 
 ### Child 3: Fulfillment
-Sensitive requests wait for human approval; routine requests are fulfilled automatically.
+Sensitive requests wait for an explicit `{ "approved": true }` decision accompanied by the `x-approval-token` header. A false, unauthenticated, or missing decision is rejected without calling the fulfillment API. Routine requests are fulfilled automatically.
 
 ### Global Error Handler
 Captures failures from any workflow, formats them, alerts Slack, and logs.
@@ -241,10 +247,10 @@ Across 50 projects you built:
 | Intelligence | LLM classification, generation, human-in-the-loop |
 | Architecture | Parent/Child orchestration, platform design |
 
-This capstone ties them all into a single, production-grade platform.
+This capstone ties them into a production-oriented reference platform. Production deployment still requires organization-specific authentication, TLS, secret management, backups, capacity planning, and load testing.
 
 ---
 
-Repository: https://github.com/kooroosh1363/n8n-workflows-practice
+Repository: https://github.com/kooroosh1363/agentic-automation-lab
 Author: kooroosh1363
 Date: 2026

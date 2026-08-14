@@ -70,7 +70,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\nreturn [{ json: { stage: 'ETL', stored: item.valid === true, dlq: item.valid === false } }];"
+        "jsCode": "const original = $('Validate Record').item.json;\nconst result = { stage: 'ETL', completed: true, stored: original.valid === true, dlq: original.valid === false };\nreturn [{ json: { ...original, stages: [...(original.stages || []), result] } }];"
       },
       "id": "etl-summary",
       "name": "ETL Summary",
@@ -91,7 +91,7 @@
     "Upsert to Warehouse": { "main": [[{ "node": "ETL Summary", "type": "main", "index": 0 }]] },
     "Send to DLQ": { "main": [[{ "node": "ETL Summary", "type": "main", "index": 0 }]] }
   },
-  "settings": { "executionOrder": "v1" },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "GLOBAL_ERROR_HANDLER_ID" },
   "staticData": null,
   "tags": [],
   "triggerCount": 0

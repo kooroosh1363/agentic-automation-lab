@@ -29,7 +29,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const raw = $input.first().json.choices?.[0]?.message?.content || '{}';\nlet p = {};\ntry { p = JSON.parse(raw); } catch (e) { p = {}; }\nconst priority = p.priority || 'normal';\n\nreturn [{ json: {\n  ...$('Execute Workflow Trigger').item.json,\n  priority,\n  category: p.category || 'other',\n  confidence: Number(p.confidence) || 0,\n  sensitive: priority === 'critical' || priority === 'high'\n}}];"
+        "jsCode": "const input = $('Execute Workflow Trigger').item.json;\nconst raw = $input.first().json.choices?.[0]?.message?.content || '{}';\nlet p = {};\ntry { p = JSON.parse(raw); } catch (e) { p = {}; }\nconst allowed = ['critical', 'high', 'normal', 'low'];\nconst priority = allowed.includes(p.priority) ? p.priority : 'normal';\nconst confidence = Math.max(0, Math.min(1, Number(p.confidence) || 0));\nreturn [{ json: {\n  ...input,\n  priority,\n  category: typeof p.category === 'string' ? p.category : 'other',\n  confidence,\n  sensitive: priority === 'critical' || priority === 'high',\n  stages: [...(input.stages || []), { stage: 'Intake', completed: true, confidence }]\n}}];"
       },
       "id": "parse-ai",
       "name": "Parse AI Output",
@@ -40,9 +40,9 @@
   ],
   "connections": {
     "Execute Workflow Trigger": { "main": [[{ "node": "AI Classify", "type": "main", "index": 0 }]] },
-    "AI Classify": { "main": [[{ "node": "Parse AI Output", "type": "main", "index": 0 }]] }
+    "AI Classify": { "main": [[{ "node": "Parse AI Output", "type": "main", "index": 0 }], [{ "node": "Parse AI Output", "type": "main", "index": 0 }]] }
   },
-  "settings": { "executionOrder": "v1" },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "GLOBAL_ERROR_HANDLER_ID" },
   "staticData": null,
   "tags": [],
   "triggerCount": 0

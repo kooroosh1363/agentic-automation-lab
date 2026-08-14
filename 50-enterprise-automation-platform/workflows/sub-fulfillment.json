@@ -30,6 +30,16 @@
     },
     {
       "parameters": {
+        "conditions": { "boolean": [ { "value1": "={{ $json.body?.approved === true && $json.headers?.['x-approval-token'] === $env.APPROVAL_TOKEN }}", "value2": true } ] }
+      },
+      "id": "approved",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "={{ $env.ACTION_API_URL }}/fulfill",
         "sendBody": true,
@@ -41,7 +51,7 @@
       "name": "Fulfill (Approved)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [0, 100]
+      "position": [220, 100]
     },
     {
       "parameters": {
@@ -60,10 +70,20 @@
     },
     {
       "parameters": {
-        "jsCode": "return [{ json: { stage: 'Fulfillment', completed: true, timestamp: new Date().toISOString() } }];"
+        "jsCode": "const original = $('Execute Workflow Trigger').item.json;\nconst result = { stage: 'Fulfillment', completed: true, timestamp: new Date().toISOString() };\nreturn [{ json: { ...original, stages: [...(original.stages || []), result] } }];"
       },
       "id": "fulfill-summary",
       "name": "Fulfillment Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $('Execute Workflow Trigger').item.json;\nconst result = { stage: 'Fulfillment', completed: false, rejected: true, timestamp: new Date().toISOString() };\nreturn [{ json: { ...original, stages: [...(original.stages || []), result] } }];"
+      },
+      "id": "rejected-summary",
+      "name": "Rejected Summary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [220, 300]
@@ -77,11 +97,12 @@
         [{ "node": "Fulfill (Auto)", "type": "main", "index": 0 }]
       ]
     },
-    "Wait for Approval": { "main": [[{ "node": "Fulfill (Approved)", "type": "main", "index": 0 }]] },
+    "Wait for Approval": { "main": [[{ "node": "Approved?", "type": "main", "index": 0 }]] },
+    "Approved?": { "main": [[{ "node": "Fulfill (Approved)", "type": "main", "index": 0 }], [{ "node": "Rejected Summary", "type": "main", "index": 0 }]] },
     "Fulfill (Approved)": { "main": [[{ "node": "Fulfillment Summary", "type": "main", "index": 0 }]] },
     "Fulfill (Auto)": { "main": [[{ "node": "Fulfillment Summary", "type": "main", "index": 0 }]] }
   },
-  "settings": { "executionOrder": "v1" },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "GLOBAL_ERROR_HANDLER_ID" },
   "staticData": null,
   "tags": [],
   "triggerCount": 0

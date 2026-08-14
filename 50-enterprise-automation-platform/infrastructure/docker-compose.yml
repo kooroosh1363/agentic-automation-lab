@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   n8n:
-    image: n8nio/n8n:latest
+    image: n8nio/n8n:${N8N_VERSION:-2.4.6}
     container_name: platform_n8n
     restart: always
     ports:
@@ -15,11 +13,18 @@ services:
       - DB_POSTGRESDB_USER=${POSTGRES_USER}
       - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
       - N8N_METRICS=true
-      - GENERIC_TIMEZONE=Asia/Tehran
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - GENERIC_TIMEZONE=Asia/Tbilisi
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz/readiness >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
     networks:
       - platform_net
 
@@ -33,20 +38,32 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/01-platform.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     networks:
       - platform_net
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.2.1
     container_name: platform_prometheus
     restart: always
     ports:
       - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      n8n:
+        condition: service_healthy
     networks:
       - platform_net
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.5.2
     container_name: platform_grafana
     restart: always
     ports:
@@ -56,12 +73,17 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
     depends_on:
       - prometheus
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
     networks:
       - platform_net
 
 volumes:
   n8n_data:
   postgres_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   platform_net:
