@@ -1,0 +1,14 @@
+# Environment variables (NEVER commit secrets)
+.env
+
+# Local data
+data/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor folders
+.vscode/
+.idea/
