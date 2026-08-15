@@ -69,7 +69,9 @@ jobs:
           cache: npm
           cache-dependency-path: ${{ matrix.project }}/package-lock.json
       - working-directory: ${{ matrix.project }}
-        run: npm ci
+        # The build only needs TypeScript declarations; skip native dependency
+        # install scripts (notably isolated-vm) on the generic CI runner.
+        run: npm ci --ignore-scripts
       - working-directory: ${{ matrix.project }}
         run: npm run build
 
