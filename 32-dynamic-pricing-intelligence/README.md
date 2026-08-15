@@ -1,11 +1,13 @@
- 📈 032 - Dynamic Pricing Intelligence & AI Strategist
+# 📈 32 - Dynamic Pricing Intelligence & AI Strategist
+
+![Level](https://img.shields.io/badge/Level-Advanced-6F42C1)
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![n8n Version](https://img.shields.io/badge/n8n-v1.0+-blue)
 ![AI Model](https://img.shields.io/badge/AI-GPT--4-orange)
 
 ##  Overview
-An enterprise-grade automated pricing engine that monitors competitor prices in real-time, analyzes market dynamics, and uses AI (GPT-4) to recommend optimal pricing strategies. This system ensures maximum profitability while maintaining competitive advantage, automatically alerting teams to urgent price adjustments.
+An enterprise-oriented automated pricing engine that monitors competitor prices in real-time, analyzes market dynamics, and uses AI (GPT-4) to recommend optimal pricing strategies. This system ensures maximum profitability while maintaining competitive advantage, automatically alerting teams to urgent price adjustments.
 
 ##  Key Features
 - **Multi-Source Competitor Monitoring:** Fetches pricing data from multiple competitor APIs simultaneously.

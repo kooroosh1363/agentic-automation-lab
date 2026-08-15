@@ -63,7 +63,7 @@ export class BaleEitaaTrigger implements INodeType {
 		const staticData = this.getWorkflowStaticData('node');
 		const lastUpdateId = (staticData.lastUpdateId as number) || 0;
 
-		const eventFilter = this.getNodeParameter('eventFilter', 0, 'all') as string;
+		const eventFilter = this.getNodeParameter('eventFilter', 0) as string;
 
 		try {
 			const response = await this.helpers.httpRequest({

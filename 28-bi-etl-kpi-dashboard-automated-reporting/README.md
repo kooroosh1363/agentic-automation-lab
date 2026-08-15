@@ -1,238 +1,224 @@
-8 - BI ETL Pipeline \& Automated KPI Dashboard Reporting
+# 28 - BI ETL Pipeline & Automated KPI Dashboard Reporting
 
+![Level](https://img.shields.io/badge/Level-Advanced-6F42C1)
 
 
-\## Description
+## Description
 
-This is an enterprise-grade, highly sophisticated n8n workflow designed to automate the entire Business Intelligence (BI) reporting lifecycle. It implements an Incremental ETL (Extract, Transform, Load) pattern using Watermarking to efficiently fetch only new or updated data from multiple sources (PostgreSQL and Stripe API). The workflow then performs advanced KPI calculations (MRR, CAC, LTV, Churn Rate), detects anomalies, generates a dynamic, beautifully formatted HTML report, and distributes it across multiple channels (Email for detailed HTML, Slack for executive summaries). Finally, it updates the sync watermark to ensure idempotency and efficiency in subsequent runs.
+This is an enterprise-oriented, multi-step n8n workflow designed to automate the entire Business Intelligence (BI) reporting lifecycle. It implements an Incremental ETL (Extract, Transform, Load) pattern using Watermarking to efficiently fetch only new or updated data from multiple sources (PostgreSQL and Stripe API). The workflow then performs advanced KPI calculations (MRR, CAC, LTV, Churn Rate), detects anomalies, generates a dynamic, beautifully formatted HTML report, and distributes it across multiple channels (Email for detailed HTML, Slack for executive summaries). Finally, it updates the sync watermark to ensure idempotency and efficiency in subsequent runs.
 
 
+## Nodes Used
 
-\## Nodes Used
+- **Schedule**: Triggers the workflow weekly (e.g., Monday at 8:00 AM) to generate the latest reports.
 
-\- \*\*Schedule\*\*: Triggers the workflow weekly (e.g., Monday at 8:00 AM) to generate the latest reports.
+- **PostgreSQL: Get Watermark**: Retrieves the timestamp of the last successful sync to enable incremental data extraction.
 
-\- \*\*PostgreSQL: Get Watermark\*\*: Retrieves the timestamp of the last successful sync to enable incremental data extraction.
+- **PostgreSQL: Incremental Extract**: Fetches only the new user transactions and revenue data created since the last watermark.
 
-\- \*\*PostgreSQL: Incremental Extract\*\*: Fetches only the new user transactions and revenue data created since the last watermark.
+- **HTTP Request: Stripe**: Pulls recent successful payment events from the Stripe API to complement internal database revenue.
 
-\- \*\*HTTP Request: Stripe\*\*: Pulls recent successful payment events from the Stripe API to complement internal database revenue.
+- **Code: KPI Calculation**: Aggregates data from both sources and calculates complex business metrics (MRR, CAC, LTV, Churn Rate) while performing basic anomaly detection.
 
-\- \*\*Code: KPI Calculation\*\*: Aggregates data from both sources and calculates complex business metrics (MRR, CAC, LTV, Churn Rate) while performing basic anomaly detection.
+- **PostgreSQL: Load to BI**: Upserts the calculated KPIs into a dedicated `bi_kpi_summary` table for historical tracking and dashboarding.
 
-\- \*\*PostgreSQL: Load to BI\*\*: Upserts the calculated KPIs into a dedicated `bi\_kpi\_summary` table for historical tracking and dashboarding.
+- **Code: HTML Report Gen**: Dynamically generates a professional, responsive HTML email report, highlighting any KPI anomalies (e.g., high churn rate).
 
-\- \*\*Code: HTML Report Gen\*\*: Dynamically generates a professional, responsive HTML email report, highlighting any KPI anomalies (e.g., high churn rate).
+- **Gmail: Send Report**: Emails the full HTML report to the executive team.
 
-\- \*\*Gmail: Send Report\*\*: Emails the full HTML report to the executive team.
+- **Slack: Executive Summary**: Sends a concise, formatted summary with key metrics and a link to the live dashboard to the management channel.
 
-\- \*\*Slack: Executive Summary\*\*: Sends a concise, formatted summary with key metrics and a link to the live dashboard to the management channel.
+- **PostgreSQL: Update Watermark**: Updates the `bi_sync_status` table with the current timestamp, completing the incremental cycle.
 
-\- \*\*PostgreSQL: Update Watermark\*\*: Updates the `bi\_sync\_status` table with the current timestamp, completing the incremental cycle.
 
+## Workflow Diagram
 
+![Workflow Diagram](./screenshots/workflow-diagram.png)
 
-\## Workflow Diagram
 
-!\[Workflow Diagram](./screenshots/workflow-diagram.png)
+## How It Works
 
+1. **Trigger & Watermark Retrieval**: The Schedule node triggers the workflow. The system first queries the `bi_sync_status` table to get the `last_sync` timestamp (the watermark).
 
+2. **Incremental Extraction**:
 
-\## How It Works
+   - PostgreSQL fetches only the transactions created after the watermark.
 
-1\. \*\*Trigger \& Watermark Retrieval\*\*: The Schedule node triggers the workflow. The system first queries the `bi\_sync\_status` table to get the `last\_sync` timestamp (the watermark).
+   - Simultaneously, an HTTP Request fetches recent successful payment events from Stripe.
 
-2\. \*\*Incremental Extraction\*\*: 
+3. **Transformation & KPI Calculation**: The Code node merges these data streams, calculates total revenue, derives MRR, CAC, LTV, and Churn Rate, and flags any anomalies (e.g., churn > 5%).
 
-&#x20;  - PostgreSQL fetches only the transactions created after the watermark.
+4. **Loading (Load)**: The aggregated KPIs are upserted into the `bi_kpi_summary` table in PostgreSQL, creating a reliable source of truth for BI tools.
 
-&#x20;  - Simultaneously, an HTTP Request fetches recent successful payment events from Stripe.
+5. **Report Generation**: A second Code node dynamically builds a responsive HTML document, injecting the calculated KPIs and applying conditional styling (e.g., red text for high churn).
 
-3\. \*\*Transformation \& KPI Calculation\*\*: The Code node merges these data streams, calculates total revenue, derives MRR, CAC, LTV, and Churn Rate, and flags any anomalies (e.g., churn > 5%).
+6. **Multi-Channel Distribution**:
 
-4\. \*\*Loading (Load)\*\*: The aggregated KPIs are upserted into the `bi\_kpi\_summary` table in PostgreSQL, creating a reliable source of truth for BI tools.
+   - The Gmail node sends the rich HTML report to the executive email list.
 
-5\. \*\*Report Generation\*\*: A second Code node dynamically builds a responsive HTML document, injecting the calculated KPIs and applying conditional styling (e.g., red text for high churn).
+   - The Slack node posts a quick, readable summary with a link to the live dashboard.
 
-6\. \*\*Multi-Channel Distribution\*\*: 
+7. **Watermark Update**: Upon successful distribution, the `bi_sync_status` table is updated with the current timestamp, preparing the system for the next incremental run.
 
-&#x20;  - The Gmail node sends the rich HTML report to the executive email list.
 
-&#x20;  - The Slack node posts a quick, readable summary with a link to the live dashboard.
+## How to Use
 
-7\. \*\*Watermark Update\*\*: Upon successful distribution, the `bi\_sync\_status` table is updated with the current timestamp, preparing the system for the next incremental run.
+1. Import the `workflow.json` file into your n8n instance.
 
+2. Set up the PostgreSQL database with the required BI tables (`bi_kpi_summary` and `bi_sync_status`).
 
+3. Configure all required credentials (PostgreSQL, Stripe, Gmail, Slack).
 
-\## How to Use
+4. Test the workflow manually using "Execute Workflow" to verify data extraction, KPI calculation, and report generation.
 
-1\. Import the `workflow.json` file into your n8n instance.
+5. Check the generated HTML and Slack messages to ensure formatting is correct.
 
-2\. Set up the PostgreSQL database with the required BI tables (`bi\_kpi\_summary` and `bi\_sync\_status`).
+6. Activate the workflow to run on the defined weekly schedule.
 
-3\. Configure all required credentials (PostgreSQL, Stripe, Gmail, Slack).
 
-4\. Test the workflow manually using "Execute Workflow" to verify data extraction, KPI calculation, and report generation.
+## Prerequisites
 
-5\. Check the generated HTML and Slack messages to ensure formatting is correct.
+- A running instance of n8n (Cloud or Self-hosted).
 
-6\. Activate the workflow to run on the defined weekly schedule.
+- A PostgreSQL database for both source data and BI storage.
 
+- A Stripe account with API access (for revenue data).
 
+- A Gmail account with SMTP/OAuth2 access for sending reports.
 
-\## Prerequisites
+- A Slack workspace with a dedicated executive reporting channel.
 
-\- A running instance of n8n (Cloud or Self-hosted).
 
-\- A PostgreSQL database for both source data and BI storage.
+## Setup Steps
 
-\- A Stripe account with API access (for revenue data).
+1. **PostgreSQL Setup**: Create the required BI tables:
 
-\- A Gmail account with SMTP/OAuth2 access for sending reports.
+   ```sql
 
-\- A Slack workspace with a dedicated executive reporting channel.
+   -- Table to store the sync watermark
 
+   CREATE TABLE bi_sync_status (
 
+       source VARCHAR(50) PRIMARY KEY,
 
-\## Setup Steps
+       last_sync TIMESTAMP DEFAULT NOW()
 
-1\. \*\*PostgreSQL Setup\*\*: Create the required BI tables:
+   );
 
-&#x20;  ```sql
+   INSERT INTO bi_sync_status (source, last_sync) VALUES ('main_db', '2020-01-01 00:00:00');
 
-&#x20;  -- Table to store the sync watermark
 
-&#x20;  CREATE TABLE bi\_sync\_status (
+   -- Table to store historical KPI summaries
 
-&#x20;      source VARCHAR(50) PRIMARY KEY,
+   CREATE TABLE bi_kpi_summary (
 
-&#x20;      last\_sync TIMESTAMP DEFAULT NOW()
+       report_date DATE PRIMARY KEY,
 
-&#x20;  );
+       new_users INT,
 
-&#x20;  INSERT INTO bi\_sync\_status (source, last\_sync) VALUES ('main\_db', '2020-01-01 00:00:00');
+       total_revenue DECIMAL(12,2),
 
+       mrr DECIMAL(12,2),
 
+       cac DECIMAL(12,2),
 
-&#x20;  -- Table to store historical KPI summaries
+       ltv DECIMAL(12,2),
 
-&#x20;  CREATE TABLE bi\_kpi\_summary (
+       churn_rate DECIMAL(5,2)
 
-&#x20;      report\_date DATE PRIMARY KEY,
+   );
 
-&#x20;      new\_users INT,
 
-&#x20;      total\_revenue DECIMAL(12,2),
+   -- Example source table (if not already existing)
 
-&#x20;      mrr DECIMAL(12,2),
+   CREATE TABLE user_transactions (
 
-&#x20;      cac DECIMAL(12,2),
+       id SERIAL PRIMARY KEY,
 
-&#x20;      ltv DECIMAL(12,2),
+       user_id INT,
 
-&#x20;      churn\_rate DECIMAL(5,2)
+       revenue DECIMAL(10,2),
 
-&#x20;  );
+       created_at TIMESTAMP DEFAULT NOW()
 
+   );
 
+   ```
 
-&#x20;  -- Example source table (if not already existing)
+2. **Credentials**: Add your PostgreSQL, Stripe (HTTP Header Auth), Gmail (OAuth2), and Slack credentials in n8n.
 
-&#x20;  CREATE TABLE user\_transactions (
+3. **Node Configuration**:
 
-&#x20;      id SERIAL PRIMARY KEY,
+   - Update the `HTTP Request: Stripe` node with your actual Stripe API endpoint and authentication.
 
-&#x20;      user\_id INT,
+   - Update the `Gmail: Send Report` node with the actual executive email addresses.
 
-&#x20;      revenue DECIMAL(10,2),
+   - Update the `Slack: Executive Summary` node with your actual channel ID and dashboard URL.
 
-&#x20;      created\_at TIMESTAMP DEFAULT NOW()
+   - Adjust the KPI calculation logic in the `Code: KPI Calculation` node to match your exact business formulas.
 
-&#x20;  );
+4. **Activation**: Save and activate the workflow.
 
-&#x20;  ```
 
-2\. \*\*Credentials\*\*: Add your PostgreSQL, Stripe (HTTP Header Auth), Gmail (OAuth2), and Slack credentials in n8n.
+## Credentials Required
 
-3\. \*\*Node Configuration\*\*:
+- **PostgreSQL API**: Host, Database, User, Password.
 
-&#x20;  - Update the `HTTP Request: Stripe` node with your actual Stripe API endpoint and authentication.
+- **HTTP Header Auth**: For Stripe API Key (e.g., `Authorization: Bearer sk_test_...`).
 
-&#x20;  - Update the `Gmail: Send Report` node with the actual executive email addresses.
+- **Gmail OAuth2**: For sending automated HTML reports.
 
-&#x20;  - Update the `Slack: Executive Summary` node with your actual channel ID and dashboard URL.
+- **Slack API**: Bot User OAuth Token with `chat:write` permissions.
 
-&#x20;  - Adjust the KPI calculation logic in the `Code: KPI Calculation` node to match your exact business formulas.
 
-4\. \*\*Activation\*\*: Save and activate the workflow.
+## Use Cases
 
+- **SaaS Companies**: Automating weekly MRR, Churn, and CAC reporting for founders and investors.
 
+- **E-commerce Businesses**: Aggregating sales data from multiple platforms (Shopify, Stripe, internal DB) into a single executive summary.
 
-\## Credentials Required
+- **Marketing Agencies**: Calculating and reporting on client acquisition costs and lifetime value automatically.
 
-\- \*\*PostgreSQL API\*\*: Host, Database, User, Password.
+- **Data Teams**: Providing a reliable, automated ETL pipeline that feeds both human-readable reports and downstream BI dashboards (e.g., Metabase, Tableau).
 
-\- \*\*HTTP Header Auth\*\*: For Stripe API Key (e.g., `Authorization: Bearer sk\_test\_...`).
 
-\- \*\*Gmail OAuth2\*\*: For sending automated HTML reports.
+## Customization Ideas
 
-\- \*\*Slack API\*\*: Bot User OAuth Token with `chat:write` permissions.
+- **Add More Data Sources**: Integrate Google Analytics API for traffic/conversion data or HubSpot/Salesforce for CRM metrics.
 
+- **PDF Generation**: Use an HTML-to-PDF service (like PDFShift or Gotenberg) to attach a printable PDF version of the report to the email.
 
+- **Advanced Anomaly Detection**: Replace the simple threshold check with a statistical model (e.g., Z-score) in the Code node to detect significant deviations from historical averages.
 
-\## Use Cases
+- **Dynamic Recipients**: Fetch the list of report recipients from a PostgreSQL table, allowing non-technical users to manage who receives the report.
 
-\- \*\*SaaS Companies\*\*: Automating weekly MRR, Churn, and CAC reporting for founders and investors.
+- **Error Handling Branch**: Add an Error Trigger or Try/Catch logic to notify the data engineering team via Slack if the Stripe API or PostgreSQL connection fails.
 
-\- \*\*E-commerce Businesses\*\*: Aggregating sales data from multiple platforms (Shopify, Stripe, internal DB) into a single executive summary.
 
-\- \*\*Marketing Agencies\*\*: Calculating and reporting on client acquisition costs and lifetime value automatically.
+## Notes
 
-\- \*\*Data Teams\*\*: Providing a reliable, automated ETL pipeline that feeds both human-readable reports and downstream BI dashboards (e.g., Metabase, Tableau).
+- **Incremental Efficiency**: The watermark pattern ensures that as your database grows, the workflow remains fast and cost-effective by only querying new data.
 
+- **Idempotency**: The `ON CONFLICT ... DO UPDATE` (Upsert) in the `Load to BI` step ensures that re-running the workflow for the same date does not create duplicate records.
 
+- **HTML Safety**: The dynamically generated HTML is self-contained with inline CSS, ensuring it renders correctly across all major email clients (Gmail, Outlook, Apple Mail).
 
-\## Customization Ideas
+- **Timezones**: Ensure that the `created_at` timestamps in your database and the n8n server are aligned to the same timezone to prevent data gaps or overlaps in the incremental extract.
 
-\- \*\*Add More Data Sources\*\*: Integrate Google Analytics API for traffic/conversion data or HubSpot/Salesforce for CRM metrics.
 
-\- \*\*PDF Generation\*\*: Use an HTML-to-PDF service (like PDFShift or Gotenberg) to attach a printable PDF version of the report to the email.
+## Troubleshooting
 
-\- \*\*Advanced Anomaly Detection\*\*: Replace the simple threshold check with a statistical model (e.g., Z-score) in the Code node to detect significant deviations from historical averages.
+- **Watermark Not Updating**: If the workflow fails at the Gmail or Slack step, the final "Update Watermark" step won't execute. This is intentional, ensuring the next run will retry the failed data. Check n8n execution logs for the specific error.
 
-\- \*\*Dynamic Recipients\*\*: Fetch the list of report recipients from a PostgreSQL table, allowing non-technical users to manage who receives the report.
+- **Stripe API 401 Unauthorized**: Verify that your Stripe API key is correct, has the right permissions, and is properly formatted in the HTTP Header Auth credential (e.g., `Bearer YOUR_KEY`).
 
-\- \*\*Error Handling Branch\*\*: Add an Error Trigger or Try/Catch logic to notify the data engineering team via Slack if the Stripe API or PostgreSQL connection fails.
+- **HTML Email Looks Broken**: Some email clients strip `<style>` tags. The provided HTML uses inline styles (`style="..."`) specifically to maximize compatibility, but always test with a real email client before deploying.
 
+- **KPI Calculations Return NaN**: Ensure that the incoming data from PostgreSQL and Stripe contains valid numbers. Use `parseFloat()` or `parseInt()` with fallbacks (e.g., `|| 0`) as demonstrated in the Code node.
 
+- **PostgreSQL Upsert Fails**: Verify that the `report_date` column in `bi_kpi_summary` is set as the PRIMARY KEY or has a UNIQUE constraint.
 
-\## Notes
 
-\- \*\*Incremental Efficiency\*\*: The watermark pattern ensures that as your database grows, the workflow remains fast and cost-effective by only querying new data.
-
-\- \*\*Idempotency\*\*: The `ON CONFLICT ... DO UPDATE` (Upsert) in the `Load to BI` step ensures that re-running the workflow for the same date does not create duplicate records.
-
-\- \*\*HTML Safety\*\*: The dynamically generated HTML is self-contained with inline CSS, ensuring it renders correctly across all major email clients (Gmail, Outlook, Apple Mail).
-
-\- \*\*Timezones\*\*: Ensure that the `created\_at` timestamps in your database and the n8n server are aligned to the same timezone to prevent data gaps or overlaps in the incremental extract.
-
-
-
-\## Troubleshooting
-
-\- \*\*Watermark Not Updating\*\*: If the workflow fails at the Gmail or Slack step, the final "Update Watermark" step won't execute. This is intentional, ensuring the next run will retry the failed data. Check n8n execution logs for the specific error.
-
-\- \*\*Stripe API 401 Unauthorized\*\*: Verify that your Stripe API key is correct, has the right permissions, and is properly formatted in the HTTP Header Auth credential (e.g., `Bearer YOUR\_KEY`).
-
-\- \*\*HTML Email Looks Broken\*\*: Some email clients strip `<style>` tags. The provided HTML uses inline styles (`style="..."`) specifically to maximize compatibility, but always test with a real email client before deploying.
-
-\- \*\*KPI Calculations Return NaN\*\*: Ensure that the incoming data from PostgreSQL and Stripe contains valid numbers. Use `parseFloat()` or `parseInt()` with fallbacks (e.g., `|| 0`) as demonstrated in the Code node.
-
-\- \*\*PostgreSQL Upsert Fails\*\*: Verify that the `report\_date` column in `bi\_kpi\_summary` is set as the PRIMARY KEY or has a UNIQUE constraint.
-
-
-
-\## License
+## License
 
 This project is licensed under the MIT License
-

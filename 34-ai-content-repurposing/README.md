@@ -1,11 +1,13 @@
-🎨 34 - AI Content Repurposing & Multi-Platform Distribution Engine
+# 🎨 34 - AI Content Repurposing & Multi-Platform Distribution Engine
+
+![Level](https://img.shields.io/badge/Level-Advanced-6F42C1)
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![n8n Versio n](https://img.shields.io/badge/n8n-v1.0+-blue)
 ![AI Models](https://img.shields.io/badge/AI-GPT--4%20%7C%20DALL--E--3-orange)
 
 ## 📖 Overview
-An enterprise-grade, AI-powered content repurposing engine designed for content creators, podcasters, and marketing teams. This workflow automatically monitors a YouTube channel via RSS, extracts video transcripts, uses GPT-4 to generate platform-optimized content (Twitter, LinkedIn, Instagram, Newsletter, Blog), creates eye-catching thumbnails with DALL-E 3, publishes to WordPress, logs to a Notion content calendar, and notifies the team on Slack for final approval.
+An enterprise-oriented, AI-powered content repurposing engine designed for content creators, podcasters, and marketing teams. This workflow automatically monitors a YouTube channel via RSS, extracts video transcripts, uses GPT-4 to generate platform-optimized content (Twitter, LinkedIn, Instagram, Newsletter, Blog), creates eye-catching thumbnails with DALL-E 3, publishes to WordPress, logs to a Notion content calendar, and notifies the team on Slack for final approval.
 
 ## ✨ Key Features
 - **Automated Content Monitoring:** RSS trigger watches for new YouTube videos in real-time.

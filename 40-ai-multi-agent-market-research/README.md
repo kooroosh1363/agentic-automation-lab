@@ -1,11 +1,13 @@
-🏆 40 - AI Multi-Agent Market Research & Report Generator
+# 🏆 40 - AI Multi-Agent Market Research & Report Generator
+
+![Level](https://img.shields.io/badge/Level-Advanced-6F42C1)
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![n8n Version](https://img.shields.io/badge/n8n-v1.0+-blue)
 ![AI Models](https://img.shields.io/badge/AI-GPT--4%20%7C%20Multi--Agent-orange)
 
 ## 📖 Overview
-The crown jewel of the automation portfolio. This enterprise-grade system simulates a full market research team using a Multi-Agent AI architecture. Triggered by a simple request, it deploys a "Search Agent" (Tavily) to scour the web, an "Analyst Agent" (GPT-4) to extract structured insights, and a "Writer Agent" (GPT-4) to draft a comprehensive professional report. Finally, it converts the report to a beautifully formatted PDF, uploads it to Google Drive, and emails the download link to the stakeholder.
+A capstone system in the automation portfolio. This enterprise-oriented system simulates a full market research team using a Multi-Agent AI architecture. Triggered by a simple request, it deploys a "Search Agent" (Tavily) to scour the web, an "Analyst Agent" (GPT-4) to extract structured insights, and a "Writer Agent" (GPT-4) to draft a comprehensive professional report. Finally, it converts the report to a beautifully formatted PDF, uploads it to Google Drive, and emails the download link to the stakeholder.
 
 ## ✨ Key Features
 - **Multi-Agent Orchestration:** Separates concerns into Search, Analysis, and Writing agents for maximum accuracy and depth.

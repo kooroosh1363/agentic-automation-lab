@@ -1,7 +1,9 @@
-n8n Monitoring Dashboard & Smart Alerting
+# n8n Monitoring Dashboard & Smart Alerting
+
+![Level](https://img.shields.io/badge/Level-Production--oriented-198754)
 
 > Project 43 of the n8n Enterprise practice series
-> Production-grade infrastructure monitoring with Prometheus, Grafana, and automated worker remediation
+> Production-oriented infrastructure monitoring reference with Prometheus, Grafana, and automated worker remediation
 
 ---
 
@@ -260,6 +262,6 @@ Confirm data is returned.
 
 ---
 
-Repository: https://github.com/kooroosh1363/n8n-workflows-practice
+Repository: https://github.com/kooroosh1363/agentic-automation-lab
 Author: kooroosh1363
 Date: 2026

@@ -1,248 +1,210 @@
-\# Smart LMS Education Automation
+# Smart LMS Education Automation
+
+![Level](https://img.shields.io/badge/Level-Intermediate-0D6EFD)
 
 
-
-\## 📋 Description
-
+## 📋 Description
 
 
 An intelligent Learning Management System (LMS) automation that personalizes the student journey. It uses AI to assess student levels upon registration, generates tailored learning paths, automatically grades quizzes with personalized feedback, identifies at-risk students for early intervention, and issues digital certificates upon successful completion.
 
 
+## 🔧 Nodes Used
 
-\## 🔧 Nodes Used
 
+- **Webhook** - Handles student registration and quiz submissions
 
+- **OpenAI GPT-4** - AI level assessment, personalized quiz grading, and weekly analytics generation
 
-\- \*\*Webhook\*\* - Handles student registration and quiz submissions
+- **Code Node** - Creates learning paths and calculates risk metrics
 
-\- \*\*OpenAI GPT-4\*\* - AI level assessment, personalized quiz grading, and weekly analytics generation
+- **Google Sheets** - Acts as the database for student profiles and progress tracking
 
-\- \*\*Code Node\*\* - Creates learning paths and calculates risk metrics
+- **Switch Node** - Routes students based on quiz performance (Remedial vs. Certificate)
 
-\- \*\*Google Sheets\*\* - Acts as the database for student profiles and progress tracking
+- **Email Send** - Delivers welcome emails, remedial help, certificates, and admin reports
 
-\- \*\*Switch Node\*\* - Routes students based on quiz performance (Remedial vs. Certificate)
+- **Schedule Trigger** - Triggers weekly administrative analytics
 
-\- \*\*Email Send\*\* - Delivers welcome emails, remedial help, certificates, and admin reports
 
-\- \*\*Schedule Trigger\*\* - Triggers weekly administrative analytics
+## 🔄 Workflow Diagram
 
 
+![Workflow Diagram](screenshots/workflow-diagram.png)
 
-\## 🔄 Workflow Diagram
 
+## ️ How It Works
 
 
-!\[Workflow Diagram](screenshots/workflow-diagram.png)
+### Phase 1: Registration & AI Assessment
 
+1. **Registration Webhook**: Receives new student data and initial quiz answers.
 
+2. **AI Level Assessment**: GPT-4 evaluates the student's background and quiz answers to determine their proficiency level (Beginner, Intermediate, Advanced) and recommends specific modules.
 
-\## ️ How It Works
+3. **Path Creation & Logging**: The system generates a unique Student ID, saves the profile to the "Students" Google Sheet, and sends a personalized Welcome Email with their first module.
 
 
+### Phase 2: Quiz Submission & AI Grading
 
-\### Phase 1: Registration \& AI Assessment
+1. **Quiz Webhook**: Triggered when a student submits a module quiz.
 
-1\. \*\*Registration Webhook\*\*: Receives new student data and initial quiz answers.
+2. **AI Grading**: GPT-4 evaluates the answers, assigns a score (0-100), and generates personalized feedback and identifies weak areas.
 
-2\. \*\*AI Level Assessment\*\*: GPT-4 evaluates the student's background and quiz answers to determine their proficiency level (Beginner, Intermediate, Advanced) and recommends specific modules.
+3. **Risk Check**: The Code Node updates the student's progress and flags them as "at_risk" if their score is below 50%.
 
-3\. \*\*Path Creation \& Logging\*\*: The system generates a unique Student ID, saves the profile to the "Students" Google Sheet, and sends a personalized Welcome Email with their first module.
 
+### Phase 3: Smart Routing
 
+1. **Switch Node**: Checks the risk flag.
 
-\### Phase 2: Quiz Submission \& AI Grading
+2. **Remedial Path**: If at-risk, the student receives an email with personalized feedback and resources to review the material.
 
-1\. \*\*Quiz Webhook\*\*: Triggered when a student submits a module quiz.
+3. **Success Path**: If passed, the student receives a congratulatory email and their digital certificate.
 
-2\. \*\*AI Grading\*\*: GPT-4 evaluates the answers, assigns a score (0-100), and generates personalized feedback and identifies weak areas.
 
-3\. \*\*Risk Check\*\*: The Code Node updates the student's progress and flags them as "at\_risk" if their score is below 50%.
+### Phase 4: Weekly Admin Analytics
 
+1. **Scheduled Trigger**: Runs every Monday morning to fetch all student data.
 
+2. **AI Analytics**: GPT-4 analyzes the data to calculate completion rates, identify struggling modules, and generate actionable recommendations for the admin.
 
-\### Phase 3: Smart Routing
+3. **Admin Report**: A comprehensive weekly health report is emailed to the course administrator.
 
-1\. \*\*Switch Node\*\*: Checks the risk flag.
 
-2\. \*\*Remedial Path\*\*: If at-risk, the student receives an email with personalized feedback and resources to review the material.
+## 🚀 How to Use
 
-3\. \*\*Success Path\*\*: If passed, the student receives a congratulatory email and their digital certificate.
 
+### Prerequisites
 
 
-\### Phase 4: Weekly Admin Analytics
+- n8n instance (self-hosted or cloud)
 
-1\. \*\*Scheduled Trigger\*\*: Runs every Monday morning to fetch all student data.
+- OpenAI API key
 
-2\. \*\*AI Analytics\*\*: GPT-4 analyzes the data to calculate completion rates, identify struggling modules, and generate actionable recommendations for the admin.
+- Google Sheets account
 
-3\. \*\*Admin Report\*\*: A comprehensive weekly health report is emailed to the course administrator.
+- Email account (SMTP)
 
 
+### Setup Steps
 
-\## 🚀 How to Use
 
+1. **Import Workflow**
 
+   - Open n8n and import `workflow.json`.
 
-\### Prerequisites
 
+2. **Configure Webhooks**
 
+   - Copy the production URLs for `Student Registration Webhook` and `Quiz Submission Webhook`.
 
-\- n8n instance (self-hosted or cloud)
+   - Integrate these URLs into your frontend learning platform or forms.
 
-\- OpenAI API key
 
-\- Google Sheets account
+3. **Configure Google Sheets**
 
-\- Email account (SMTP)
+   - Connect your Google Sheets OAuth2 account.
 
+   - Update `YOUR_GOOGLE_SHEET_ID` in all Google Sheets nodes.
 
+   - Create a sheet named "Students" with columns: student_id, student_name, email, current_level, current_module_index, status, enrollment_date.
 
-\### Setup Steps
 
+4. **Configure OpenAI**
 
+   - Connect your OpenAI API credentials to all three AI nodes.
 
-1\. \*\*Import Workflow\*\*
 
-&#x20;  - Open n8n and import `workflow.json`.
+5. **Configure Email Notifications**
 
+   - Update `lms@yourcompany.com` (sender) and `admin@yourcompany.com` (weekly reports) with your actual email addresses.
 
 
-2\. \*\*Configure Webhooks\*\*
+6. **Activate Workflow**
 
-&#x20;  - Copy the production URLs for `Student Registration Webhook` and `Quiz Submission Webhook`.
+   - Toggle the workflow to "Active".
 
-&#x20;  - Integrate these URLs into your frontend learning platform or forms.
 
+## 🔐 Credentials Required
 
 
-3\. \*\*Configure Google Sheets\*\*
+- **OpenAI API**: OpenAI API key
 
-&#x20;  - Connect your Google Sheets OAuth2 account.
+- **Google Sheets OAuth2**: Google Sheets API access
 
-&#x20;  - Update `YOUR\_GOOGLE\_SHEET\_ID` in all Google Sheets nodes.
+- **SMTP Email**: Email sending credentials
 
-&#x20;  - Create a sheet named "Students" with columns: student\_id, student\_name, email, current\_level, current\_module\_index, status, enrollment\_date.
 
+## 💡 Use Cases
 
 
-4\. \*\*Configure OpenAI\*\*
+- **Online Course Platforms**: Automate student onboarding, grading, and certification.
 
-&#x20;  - Connect your OpenAI API credentials to all three AI nodes.
+- **Corporate Training**: Track employee progress and automatically intervene if they struggle with compliance modules.
 
+- **Coding Bootcamps**: Provide instant, AI-driven feedback on code submissions and quizzes.
 
+- **K-12 Education**: Help teachers identify at-risk students early in the semester.
 
-5\. \*\*Configure Email Notifications\*\*
 
-&#x20;  - Update `lms@yourcompany.com` (sender) and `admin@yourcompany.com` (weekly reports) with your actual email addresses.
+## 🔧 Customization Ideas
 
 
+- **PDF Certificate Generation**: Integrate an HTML-to-PDF API (like PDFShift or Gotenberg) to generate and attach a beautifully designed, personalized PDF certificate.
 
-6\. \*\*Activate Workflow\*\*
+- **Video Hosting Integration**: Connect to Vimeo or YouTube APIs to unlock the next video module only after a quiz is passed.
 
-&#x20;  - Toggle the workflow to "Active".
+- **Gamification**: Add a "Points" or "Badges" system in the Code Node to reward students for high scores and streaks.
 
+- **Slack/Teams Integration**: Send real-time notifications to instructors when a student is flagged as "at_risk".
 
 
-\## 🔐 Credentials Required
+## 📝 Notes
 
 
+- **Webhook Payloads**: Ensure your frontend sends the correct JSON structure (e.g., `student_name`, `email`, `quiz_answers`) to the webhooks.
 
-\- \*\*OpenAI API\*\*: OpenAI API key
+- **AI Grading Accuracy**: For highly technical subjects, you may need to adjust the GPT-4 prompt to include specific rubrics or reference materials.
 
-\- \*\*Google Sheets OAuth2\*\*: Google Sheets API access
 
-\- \*\*SMTP Email\*\*: Email sending credentials
+##  Troubleshooting
 
 
+**Issue**: AI Grading node failing
 
-\## 💡 Use Cases
+- **Solution**: Check if the `answers` payload is correctly formatted and not empty. Verify OpenAI API credits.
 
 
+**Issue**: Student not marked as "at_risk"
 
-\- \*\*Online Course Platforms\*\*: Automate student onboarding, grading, and certification.
+- **Solution**: Review the logic in the "Update Progress & Risk Check" Code Node. The threshold is currently set to `< 50`.
 
-\- \*\*Corporate Training\*\*: Track employee progress and automatically intervene if they struggle with compliance modules.
 
-\- \*\*Coding Bootcamps\*\*: Provide instant, AI-driven feedback on code submissions and quizzes.
+**Issue**: Weekly report not sending
 
-\- \*\*K-12 Education\*\*: Help teachers identify at-risk students early in the semester.
+- **Solution**: Ensure the "Students" sheet has data and the Schedule Trigger is set to the correct timezone.
 
 
-
-\## 🔧 Customization Ideas
-
-
-
-\- \*\*PDF Certificate Generation\*\*: Integrate an HTML-to-PDF API (like PDFShift or Gotenberg) to generate and attach a beautifully designed, personalized PDF certificate.
-
-\- \*\*Video Hosting Integration\*\*: Connect to Vimeo or YouTube APIs to unlock the next video module only after a quiz is passed.
-
-\- \*\*Gamification\*\*: Add a "Points" or "Badges" system in the Code Node to reward students for high scores and streaks.
-
-\- \*\*Slack/Teams Integration\*\*: Send real-time notifications to instructors when a student is flagged as "at\_risk".
-
-
-
-\## 📝 Notes
-
-
-
-\- \*\*Webhook Payloads\*\*: Ensure your frontend sends the correct JSON structure (e.g., `student\_name`, `email`, `quiz\_answers`) to the webhooks.
-
-\- \*\*AI Grading Accuracy\*\*: For highly technical subjects, you may need to adjust the GPT-4 prompt to include specific rubrics or reference materials.
-
-
-
-\##  Troubleshooting
-
-
-
-\*\*Issue\*\*: AI Grading node failing
-
-\- \*\*Solution\*\*: Check if the `answers` payload is correctly formatted and not empty. Verify OpenAI API credits.
-
-
-
-\*\*Issue\*\*: Student not marked as "at\_risk"
-
-\- \*\*Solution\*\*: Review the logic in the "Update Progress \& Risk Check" Code Node. The threshold is currently set to `< 50`.
-
-
-
-\*\*Issue\*\*: Weekly report not sending
-
-\- \*\*Solution\*\*: Ensure the "Students" sheet has data and the Schedule Trigger is set to the correct timezone.
-
-
-
-\##  License
-
+##  License
 
 
 This workflow is provided as-is for educational and commercial use.
 
 
-
-\## 🤝 Contributing
-
+## 🤝 Contributing
 
 
 Feel free to fork, modify, and improve this workflow for your specific educational platform needs.
 
 
-
 \---
 
 
+**Created for**: agentic-automation-lab
 
-\*\*Created for\*\*: n8n-workflows-practice  
+**Exercise**: 18 - Smart LMS Education Automation
 
-\*\*Exercise\*\*: 18 - Smart LMS Education Automation  
+**Author**: Koroosh
 
-\*\*Author\*\*: Koroosh  
-
-\*\*Date\*\*: 2026
-
+**Date**: 2026

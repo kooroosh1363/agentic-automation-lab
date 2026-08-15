@@ -1,7 +1,9 @@
-n8n Custom Node: GitHub Enterprise (Pagination + Rate Limiting)
+# n8n Custom Node: GitHub Enterprise (Pagination + Rate Limiting)
+
+![Level](https://img.shields.io/badge/Level-Production--oriented-198754)
 
 > Project 47 of the n8n Enterprise practice series
-> An enterprise-grade n8n node with automatic pagination and exponential-backoff rate limiting
+> An enterprise-oriented n8n node with automatic pagination and exponential-backoff rate limiting
 
 ---
 
@@ -116,7 +118,7 @@ npm run build
 ### Method A: N8N_CUSTOM_EXTENSIONS (development)
 
 ```bash
-set N8N_CUSTOM_EXTENSIONS=E:\P\git project\n8n-workflows-practice\47-custom-node-pagination
+set N8N_CUSTOM_EXTENSIONS=E:\P\git project\agentic-automation-lab\47-custom-node-pagination
 ```
 
 ### Method B: Persistent install
@@ -124,7 +126,7 @@ set N8N_CUSTOM_EXTENSIONS=E:\P\git project\n8n-workflows-practice\47-custom-node
 ```bash
 mkdir %USERPROFILE%\.n8n\nodes
 cd %USERPROFILE%\.n8n\nodes
-npm install "E:\P\git project\n8n-workflows-practice\47-custom-node-pagination"
+npm install "E:\P\git project\agentic-automation-lab\47-custom-node-pagination"
 ```
 
 Restart n8n afterwards.
@@ -164,7 +166,7 @@ Fetch all issues from a repository (offset pagination):
 Manual Trigger
    → GitHub Enterprise
         Operation: List Items
-        Resource Path: /repos/kooroosh1363/n8n-workflows-practice/issues
+        Resource Path: /repos/kooroosh1363/agentic-automation-lab/issues
         Pagination Strategy: offset
         Page Size: 100
         Max Pages: 10
@@ -195,6 +197,6 @@ The node returns one item per issue, having internally fetched every page while 
 
 ---
 
-Repository: https://github.com/kooroosh1363/n8n-workflows-practice
+Repository: https://github.com/kooroosh1363/agentic-automation-lab
 Author: kooroosh1363
 Date: 2026

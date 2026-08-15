@@ -1,4 +1,6 @@
-n8n Custom Node: Data Transformer
+# n8n Custom Node: Data Transformer
+
+![Level](https://img.shields.io/badge/Level-Production--oriented-198754)
 
 > Project 46 of the n8n Enterprise practice series
 > A reusable community node for advanced data transformation, published to npm
@@ -111,7 +113,7 @@ The compiled output is placed in `dist/` and the SVG icon is copied automaticall
 ### Method A: N8N_CUSTOM_EXTENSIONS (development)
 
 ```bash
-set N8N_CUSTOM_EXTENSIONS=E:\P\git project\n8n-workflows-practice\46-custom-data-transformer
+set N8N_CUSTOM_EXTENSIONS=E:\P\git project\agentic-automation-lab\46-custom-data-transformer
 ```
 
 ### Method B: Persistent install
@@ -119,7 +121,7 @@ set N8N_CUSTOM_EXTENSIONS=E:\P\git project\n8n-workflows-practice\46-custom-data
 ```bash
 mkdir %USERPROFILE%\.n8n\nodes
 cd %USERPROFILE%\.n8n\nodes
-npm install "E:\P\git project\n8n-workflows-practice\46-custom-data-transformer"
+npm install "E:\P\git project\agentic-automation-lab\46-custom-data-transformer"
 ```
 
 Restart n8n. The **Data Transformer** node appears under the Transform category.
@@ -220,6 +222,6 @@ npm publish
 
 ---
 
-Repository: https://github.com/kooroosh1363/n8n-workflows-practice
+Repository: https://github.com/kooroosh1363/agentic-automation-lab
 Author: kooroosh1363
 Date: 2026

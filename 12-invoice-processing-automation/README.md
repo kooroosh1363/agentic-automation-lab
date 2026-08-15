@@ -1,432 +1,386 @@
-\# Invoice Processing Automation System
+# Invoice Processing Automation System
+
+![Level](https://img.shields.io/badge/Level-Intermediate-0D6EFD)
 
 
-
-\## 📋 Description
-
+## 📋 Description
 
 
 An intelligent invoice processing and financial automation system that automatically receives invoices via email, extracts key information using OCR and AI, matches invoices with purchase orders, routes for approval based on matching accuracy, and sends automated payment reminders based on due dates.
 
 
+## 🔧 Nodes Used
 
-\## 🔧 Nodes Used
 
+- **Email Trigger (IMAP)** - Monitors inbox for new invoice emails
 
+- **Google Drive** - Stores invoice documents
 
-\- \*\*Email Trigger (IMAP)\*\* - Monitors inbox for new invoice emails
+- **OpenAI GPT-4 Vision** - OCR and invoice data extraction
 
-\- \*\*Google Drive\*\* - Stores invoice documents
+- **Google Sheets** - Purchase Orders database, Invoice logging
 
-\- \*\*OpenAI GPT-4 Vision\*\* - OCR and invoice data extraction
+- **Code Node** - Data matching, validation, and payment date checking
 
-\- \*\*Google Sheets\*\* - Purchase Orders database, Invoice logging
+- **Switch Node** - Routes invoices based on approval requirements
 
-\- \*\*Code Node\*\* - Data matching, validation, and payment date checking
+- **Email Send** - Approval requests and payment reminders
 
-\- \*\*Switch Node\*\* - Routes invoices based on approval requirements
+- **Slack** - Auto-approval notifications
 
-\- \*\*Email Send\*\* - Approval requests and payment reminders
+- **Schedule Trigger** - Daily payment due date checking
 
-\- \*\*Slack\*\* - Auto-approval notifications
 
-\- \*\*Schedule Trigger\*\* - Daily payment due date checking
+## 🔄 Workflow Diagram
 
 
+![Workflow Diagram](screenshots/workflow-diagram.png)
 
-\## 🔄 Workflow Diagram
 
+## ⚙️ How It Works
 
 
-!\[Workflow Diagram](screenshots/workflow-diagram.png)
+### Main Invoice Processing Flow:
 
+1. **Email Monitoring**: System continuously monitors inbox for invoice emails
 
+2. **Document Storage**: Automatically saves invoice attachments to Google Drive
 
-\## ⚙️ How It Works
+3. **OCR & AI Extraction**: Uses GPT-4 Vision to extract:
 
+   - Invoice number, dates, vendor information
 
+   - Line items, quantities, unit prices
 
-\### Main Invoice Processing Flow:
+   - Subtotal, tax, total amount
 
-1\. \*\*Email Monitoring\*\*: System continuously monitors inbox for invoice emails
+   - Payment terms and PO number
 
-2\. \*\*Document Storage\*\*: Automatically saves invoice attachments to Google Drive
+   - Confidence score for extraction accuracy
 
-3\. \*\*OCR \& AI Extraction\*\*: Uses GPT-4 Vision to extract:
+4. **Purchase Order Matching**: Compares invoice with POs in Google Sheets:
 
-&#x20;  - Invoice number, dates, vendor information
+   - Matches by PO number (if available)
 
-&#x20;  - Line items, quantities, unit prices
+   - Validates vendor name and total amount
 
-&#x20;  - Subtotal, tax, total amount
+   - Calculates match score (0-100%)
 
-&#x20;  - Payment terms and PO number
+5. **Status Determination**:
 
-&#x20;  - Confidence score for extraction accuracy
+   - **Auto-Approved**: Match score 100% + OCR confidence ≥90%
 
-4\. \*\*Purchase Order Matching\*\*: Compares invoice with POs in Google Sheets:
+   - **Pending Manual Review**: Match score 70-99%
 
-&#x20;  - Matches by PO number (if available)
+   - **Pending Review**: Match score <70% or no PO match
 
-&#x20;  - Validates vendor name and total amount
+6. **Approval Routing**:
 
-&#x20;  - Calculates match score (0-100%)
+   - Auto-approved invoices → Slack notification
 
-5\. \*\*Status Determination\*\*:
+   - Invoices requiring approval → Email to finance manager
 
-&#x20;  - \*\*Auto-Approved\*\*: Match score 100% + OCR confidence ≥90%
+7. **Logging**: All invoices logged in Google Sheets with full details
 
-&#x20;  - \*\*Pending Manual Review\*\*: Match score 70-99%
 
-&#x20;  - \*\*Pending Review\*\*: Match score <70% or no PO match
+### Daily Payment Reminder Flow:
 
-6\. \*\*Approval Routing\*\*:
+1. **Scheduled Check**: Runs daily at 9:00 AM
 
-&#x20;  - Auto-approved invoices → Slack notification
+2. **Due Date Analysis**: Checks all approved invoices
 
-&#x20;  - Invoices requiring approval → Email to finance manager
+3. **Categorization**:
 
-7\. \*\*Logging\*\*: All invoices logged in Google Sheets with full details
+   - **Overdue Payments**: Due date < today
 
+   - **Upcoming Payments**: Due date within next 3 days
 
+4. **Email Reminder**: Sends consolidated reminder to finance team
 
-\### Daily Payment Reminder Flow:
 
-1\. \*\*Scheduled Check\*\*: Runs daily at 9:00 AM
+## 🚀 How to Use
 
-2\. \*\*Due Date Analysis\*\*: Checks all approved invoices
 
-3\. \*\*Categorization\*\*:
+### Prerequisites
 
-&#x20;  - \*\*Overdue Payments\*\*: Due date < today
 
-&#x20;  - \*\*Upcoming Payments\*\*: Due date within next 3 days
+- n8n instance (self-hosted or cloud)
 
-4\. \*\*Email Reminder\*\*: Sends consolidated reminder to finance team
+- Email account with IMAP access
 
+- Google Drive account
 
+- Google Sheets account
 
-\## 🚀 How to Use
+- OpenAI API key (with Vision access)
 
+- Slack workspace (optional)
 
 
-\### Prerequisites
+### Setup Steps
 
 
+1. **Import Workflow**
 
-\- n8n instance (self-hosted or cloud)
+   - Open n8n
 
-\- Email account with IMAP access
+   - Click "Import from File"
 
-\- Google Drive account
+   - Select `workflow.json`
 
-\- Google Sheets account
 
-\- OpenAI API key (with Vision access)
+2. **Configure Email Trigger**
 
-\- Slack workspace (optional)
+   - Set your email credentials (IMAP server, username, password)
 
+   - Update subject filter if needed (default: "Invoice")
 
 
-\### Setup Steps
+3. **Configure Google Drive**
 
+   - Connect your Google Drive account
 
+   - Update `YOUR_GOOGLE_DRIVE_ID` with your Drive ID
 
-1\. \*\*Import Workflow\*\*
+   - Update `YOUR_INVOICES_FOLDER_ID` with target folder ID
 
-&#x20;  - Open n8n
 
-&#x20;  - Click "Import from File"
+4. **Configure OpenAI**
 
-&#x20;  - Select `workflow.json`
+   - Add your OpenAI API credentials
 
+   - Model is set to GPT-4 Vision Preview
 
 
-2\. \*\*Configure Email Trigger\*\*
+5. **Configure Google Sheets**
 
-&#x20;  - Set your email credentials (IMAP server, username, password)
+   - Connect your Google Sheets account
 
-&#x20;  - Update subject filter if needed (default: "Invoice")
+   - Update `YOUR_GOOGLE_SHEET_ID` with your sheet ID
 
+   - Create two sheets:
 
 
-3\. \*\*Configure Google Drive\*\*
+   **Sheet 1: "PurchaseOrders"** with columns:
 
-&#x20;  - Connect your Google Drive account
+   - po_number
 
-&#x20;  - Update `YOUR\_GOOGLE\_DRIVE\_ID` with your Drive ID
+   - vendor_name
 
-&#x20;  - Update `YOUR\_INVOICES\_FOLDER\_ID` with target folder ID
+   - total_amount
 
+   - order_date
 
+   - status
 
-4\. \*\*Configure OpenAI\*\*
 
-&#x20;  - Add your OpenAI API credentials
+   **Sheet 2: "InvoiceLog"** with columns:
 
-&#x20;  - Model is set to GPT-4 Vision Preview
+   - invoice_id
 
+   - invoice_number
 
+   - invoice_date
 
-5\. \*\*Configure Google Sheets\*\*
+   - due_date
 
-&#x20;  - Connect your Google Sheets account
+   - vendor_name
 
-&#x20;  - Update `YOUR\_GOOGLE\_SHEET\_ID` with your sheet ID
+   - total_amount
 
-&#x20;  - Create two sheets:
+   - currency
 
+   - matched_po
 
+   - match_score
 
-&#x20;  \*\*Sheet 1: "PurchaseOrders"\*\* with columns:
+   - confidence_score
 
-&#x20;  - po\_number
+   - status
 
-&#x20;  - vendor\_name
+   - requires_approval
 
-&#x20;  - total\_amount
+   - drive_url
 
-&#x20;  - order\_date
+   - received_at
 
-&#x20;  - status
+   - processed_at
 
 
+6. **Configure Slack (Optional)**
 
-&#x20;  \*\*Sheet 2: "InvoiceLog"\*\* with columns:
+   - Connect your Slack account
 
-&#x20;  - invoice\_id
+   - Update channel name (default: #finance-notifications)
 
-&#x20;  - invoice\_number
 
-&#x20;  - invoice\_date
+7. **Configure Email Notifications**
 
-&#x20;  - due\_date
+   - Update email addresses:
 
-&#x20;  - vendor\_name
+     - finance@yourcompany.com (sender)
 
-&#x20;  - total\_amount
+     - finance-manager@yourcompany.com (approval requests)
 
-&#x20;  - currency
+     - finance-team@yourcompany.com (payment reminders)
 
-&#x20;  - matched\_po
 
-&#x20;  - match\_score
+8. **Activate Workflow**
 
-&#x20;  - confidence\_score
+   - Toggle the workflow to "Active"
 
-&#x20;  - status
+   - Test by sending an invoice email to your monitored inbox
 
-&#x20;  - requires\_approval
 
-&#x20;  - drive\_url
+## 🔐 Credentials Required
 
-&#x20;  - received\_at
 
-&#x20;  - processed\_at
+- **IMAP Email**: Email server credentials
 
+- **Google Drive OAuth2**: Google Drive API access
 
+- **Google Sheets OAuth2**: Google Sheets API access
 
-6\. \*\*Configure Slack (Optional)\*\*
+- **OpenAI API**: OpenAI API key with Vision access
 
-&#x20;  - Connect your Slack account
+- **SMTP Email**: Email sending credentials
 
-&#x20;  - Update channel name (default: #finance-notifications)
+- **Slack API**: Slack bot token (optional)
 
 
+## 📊 Matching & Approval Logic
 
-7\. \*\*Configure Email Notifications\*\*
 
-&#x20;  - Update email addresses:
+### Match Score Calculation:
 
-&#x20;    - finance@yourcompany.com (sender)
+- **100%**: PO number matches + Amount matches (±$1) + Vendor matches
 
-&#x20;    - finance-manager@yourcompany.com (approval requests)
+- **70%**: Either amount OR vendor matches
 
-&#x20;    - finance-team@yourcompany.com (payment reminders)
+- **50%**: PO found but neither amount nor vendor matches
 
+- **0%**: No PO match found
 
 
-8\. \*\*Activate Workflow\*\*
+### Approval Requirements:
 
-&#x20;  - Toggle the workflow to "Active"
+- **Auto-Approved**: Match score = 100% AND OCR confidence ≥ 90%
 
-&#x20;  - Test by sending an invoice email to your monitored inbox
+- **Manual Review Required**: All other cases
 
 
+### Status Flow:
 
-\## 🔐 Credentials Required
+1. `pending_review` → Initial status after OCR
 
+2. `auto_approved` → Automatically approved (no manual intervention)
 
+3. `pending_manual_review` → Requires finance manager approval
 
-\- \*\*IMAP Email\*\*: Email server credentials
+4. `approved` → Manually approved by finance manager
 
-\- \*\*Google Drive OAuth2\*\*: Google Drive API access
+5. `rejected` → Rejected by finance manager
 
-\- \*\*Google Sheets OAuth2\*\*: Google Sheets API access
+6. `paid` → Payment completed
 
-\- \*\*OpenAI API\*\*: OpenAI API key with Vision access
 
-\- \*\*SMTP Email\*\*: Email sending credentials
+## 💡 Use Cases
 
-\- \*\*Slack API\*\*: Slack bot token (optional)
 
+- **Accounts Payable**: Automate invoice receipt and processing
 
+- **Procurement**: Match invoices with purchase orders automatically
 
-\## 📊 Matching \& Approval Logic
+- **Finance Teams**: Streamline approval workflows
 
+- **Small Businesses**: Reduce manual data entry and errors
 
+- **Enterprise**: Handle high volumes of invoices efficiently
 
-\### Match Score Calculation:
 
-\- \*\*100%\*\*: PO number matches + Amount matches (±$1) + Vendor matches
+## 🔧 Customization Ideas
 
-\- \*\*70%\*\*: Either amount OR vendor matches
 
-\- \*\*50%\*\*: PO found but neither amount nor vendor matches
+- Add multi-level approval based on invoice amount thresholds
 
-\- \*\*0%\*\*: No PO match found
+- Integrate with accounting software (QuickBooks, Xero, SAP)
 
+- Add vendor performance tracking
 
+- Implement duplicate invoice detection
 
-\### Approval Requirements:
+- Add currency conversion for international invoices
 
-\- \*\*Auto-Approved\*\*: Match score = 100% AND OCR confidence ≥ 90%
+- Create dashboard for invoice analytics and cash flow forecasting
 
-\- \*\*Manual Review Required\*\*: All other cases
+- Add automatic payment scheduling
 
+- Integrate with bank APIs for direct payment processing
 
 
-\### Status Flow:
+## 📝 Notes
 
-1\. `pending\_review` → Initial status after OCR
 
-2\. `auto\_approved` → Automatically approved (no manual intervention)
+- OCR quality depends on invoice image clarity and format
 
-3\. `pending\_manual\_review` → Requires finance manager approval
+- Standard invoice formats yield better extraction results
 
-4\. `approved` → Manually approved by finance manager
+- Match score thresholds can be adjusted in the Code Node
 
-5\. `rejected` → Rejected by finance manager
+- Consider adding error handling for failed OCR extractions
 
-6\. `paid` → Payment completed
+- For high volumes, implement queue management
 
+- Test with various invoice formats to ensure robustness
 
 
-\## 💡 Use Cases
+## 🐛 Troubleshooting
 
 
+**Issue**: OCR extraction failing or inaccurate
 
-\- \*\*Accounts Payable\*\*: Automate invoice receipt and processing
+- **Solution**: Ensure invoice images are clear and readable; check OpenAI Vision API limits
 
-\- \*\*Procurement\*\*: Match invoices with purchase orders automatically
 
-\- \*\*Finance Teams\*\*: Streamline approval workflows
+**Issue**: No purchase order match found
 
-\- \*\*Small Businesses\*\*: Reduce manual data entry and errors
+- **Solution**: Verify PO data in Google Sheets; check PO number format consistency
 
-\- \*\*Enterprise\*\*: Handle high volumes of invoices efficiently
 
+**Issue**: Approval email not sent
 
+- **Solution**: Check SMTP credentials; verify email addresses
 
-\## 🔧 Customization Ideas
 
+**Issue**: Payment reminders not working
 
+- **Solution**: Verify due_date format (YYYY-MM-DD); check Schedule Trigger settings
 
-\- Add multi-level approval based on invoice amount thresholds
 
-\- Integrate with accounting software (QuickBooks, Xero, SAP)
+**Issue**: Auto-approval not triggering
 
-\- Add vendor performance tracking
+- **Solution**: Check match score calculation logic; verify OCR confidence threshold
 
-\- Implement duplicate invoice detection
 
-\- Add currency conversion for international invoices
-
-\- Create dashboard for invoice analytics and cash flow forecasting
-
-\- Add automatic payment scheduling
-
-\- Integrate with bank APIs for direct payment processing
-
-
-
-\## 📝 Notes
-
-
-
-\- OCR quality depends on invoice image clarity and format
-
-\- Standard invoice formats yield better extraction results
-
-\- Match score thresholds can be adjusted in the Code Node
-
-\- Consider adding error handling for failed OCR extractions
-
-\- For high volumes, implement queue management
-
-\- Test with various invoice formats to ensure robustness
-
-
-
-\## 🐛 Troubleshooting
-
-
-
-\*\*Issue\*\*: OCR extraction failing or inaccurate
-
-\- \*\*Solution\*\*: Ensure invoice images are clear and readable; check OpenAI Vision API limits
-
-
-
-\*\*Issue\*\*: No purchase order match found
-
-\- \*\*Solution\*\*: Verify PO data in Google Sheets; check PO number format consistency
-
-
-
-\*\*Issue\*\*: Approval email not sent
-
-\- \*\*Solution\*\*: Check SMTP credentials; verify email addresses
-
-
-
-\*\*Issue\*\*: Payment reminders not working
-
-\- \*\*Solution\*\*: Verify due\_date format (YYYY-MM-DD); check Schedule Trigger settings
-
-
-
-\*\*Issue\*\*: Auto-approval not triggering
-
-\- \*\*Solution\*\*: Check match score calculation logic; verify OCR confidence threshold
-
-
-
-\## 📄 License
-
+## 📄 License
 
 
 This workflow is provided as-is for educational and commercial use.
 
 
-
-\## 🤝 Contributing
-
+## 🤝 Contributing
 
 
 Feel free to fork, modify, and improve this workflow for your specific needs.
 
 
-
 \---
 
 
+**Created for**: agentic-automation-lab
 
-\*\*Created for\*\*: n8n-workflows-practice  
+**Exercise**: 12 - Invoice Processing Automation
 
-\*\*Exercise\*\*: 12 - Invoice Processing Automation  
+**Author**: Koroosh
 
-\*\*Author\*\*: Koroosh  
-
-\*\*Date\*\*: 2026
-
+**Date**: 2026

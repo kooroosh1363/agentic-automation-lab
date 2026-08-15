@@ -1,11 +1,13 @@
-🛡 031 - GDPR Compliance Auditor & AI Analyzer
+# 🛡 31 - GDPR Compliance Auditor & AI Analyzer
+
+![Level](https://img.shields.io/badge/Level-Advanced-6F42C1)
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![n8n Version](https://img.shields.io/badge/n8n-v1.0+-blue)
 ![AI Model](https://img.shields.io/badge/AI-GPT--4-orange)
 
 ## 📖 Overview
-An advanced, enterprise-grade n8n workflow designed to automate GDPR and Data Privacy compliance auditing. This system scans target websites, bypasses basic anti-bot mechanisms, extracts privacy-related pages, and uses OpenAI (GPT-4) to perform a deep semantic analysis of the content. It automatically categorizes violations by severity, logs results to a database and Google Sheets, and sends instant critical alerts via email.
+An advanced, enterprise-oriented n8n workflow designed to automate GDPR and Data Privacy compliance auditing. This system scans target websites, bypasses basic anti-bot mechanisms, extracts privacy-related pages, and uses OpenAI (GPT-4) to perform a deep semantic analysis of the content. It automatically categorizes violations by severity, logs results to a database and Google Sheets, and sends instant critical alerts via email.
 
 ## ✨ Key Features
 - **Smart Web Scraping:** Custom HTTP requests with rotating User-Agents and headers to bypass basic anti-bot protections.
@@ -17,7 +19,7 @@ An advanced, enterprise-grade n8n workflow designed to automate GDPR and Data Pr
 ## 🏗 Workflow Architecture
 
 ```text
-[Manual Trigger] 
+[Manual Trigger]
       │
       ▼
 [Scan Website (HTTP Request)] ──> Custom Headers & User-Agent
@@ -88,9 +90,9 @@ CREATE TABLE gdpr_audit_results (
 
 ##  Installation & Usage
 
-1. **Import Workflow:** 
+1. **Import Workflow:**
    - Go to n8n UI → Workflows → Import from File → Select `workflow.json`.
-2. **Configure Credentials:** 
+2. **Configure Credentials:**
    - Open the workflow and replace all placeholder credentials (`REPLACE_WITH_YOUR_...`) with your actual n8n credential IDs.
 3. **Update Google Sheets ID:**
    - In the "Log to Google Sheets" node, replace `REPLACE_WITH_YOUR_SHEET_ID` with your actual Sheet ID.

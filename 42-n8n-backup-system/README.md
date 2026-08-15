@@ -1,4 +1,6 @@
-n8n Automated Backup & Disaster Recovery System
+# n8n Automated Backup & Disaster Recovery System
+
+![Level](https://img.shields.io/badge/Level-Production--oriented-198754)
 
 > Project 42 of the n8n Enterprise practice series
 > Multi-destination encrypted backup pipeline with intelligent error handling and disaster recovery
@@ -271,13 +273,13 @@ file backup_2026-08-05T02-00-00.enc
 
 ## Notes
 
-- This project demonstrates Enterprise-grade backup patterns for n8n.
+- This project demonstrates Enterprise-oriented backup patterns for n8n.
 - For production use, consider adding backup retention policies and automated cleanup.
 - Schedule backups during low-traffic periods to minimize performance impact.
 - Monitor backup file sizes over time to detect unexpected growth.
 
 ---
 
-Repository: https://github.com/kooroosh1363/n8n-workflows-practice
+Repository: https://github.com/kooroosh1363/agentic-automation-lab
 Author: kooroosh1363
 Date: 2026

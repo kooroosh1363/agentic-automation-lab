@@ -1,370 +1,327 @@
-\# Smart Contract Management System
+# Smart Contract Management System
+
+![Level](https://img.shields.io/badge/Level-Intermediate-0D6EFD)
 
 
-
-\## 📋 Description
-
+## 📋 Description
 
 
 An intelligent contract management and legal automation system that automatically processes incoming contracts via email, extracts key clauses using AI, assesses risk levels, and routes contracts to the appropriate teams (Legal, Finance, or Sales) based on risk assessment.
 
 
+## 🔧 Nodes Used
 
-\## 🔧 Nodes Used
 
+- **Email Trigger (IMAP)** - Monitors inbox for new contract emails
 
+- **Google Drive** - Stores contract documents
 
-\- \*\*Email Trigger (IMAP)\*\* - Monitors inbox for new contract emails
+- **OpenAI GPT-4** - Analyzes contracts and extracts key information
 
-\- \*\*Google Drive\*\* - Stores contract documents
+- **Code Node** - Processes AI responses and calculates risk scores
 
-\- \*\*OpenAI GPT-4\*\* - Analyzes contracts and extracts key information
+- **Switch Node** - Routes contracts based on risk level
 
-\- \*\*Code Node\*\* - Processes AI responses and calculates risk scores
+- **Slack** - Alerts legal team for high-risk contracts
 
-\- \*\*Switch Node\*\* - Routes contracts based on risk level
+- **Email Send** - Notifies finance and sales teams
 
-\- \*\*Slack\*\* - Alerts legal team for high-risk contracts
+- **Google Sheets** - Logs all processed contracts
 
-\- \*\*Email Send\*\* - Notifies finance and sales teams
 
-\- \*\*Google Sheets\*\* - Logs all processed contracts
+## 🔄 Workflow Diagram
 
 
+![Workflow Diagram](screenshots/workflow-diagram.png)
 
-\## 🔄 Workflow Diagram
 
+## ⚙️ How It Works
 
 
-!\[Workflow Diagram](screenshots/workflow-diagram.png)
+1. **Email Monitoring**: System continuously monitors a designated email inbox for new contract emails
 
+2. **Document Storage**: Automatically saves contract attachments to Google Drive
 
+3. **AI Analysis**: Uses GPT-4 to analyze contract text and extract:
 
-\## ⚙️ How It Works
+   - Parties involved
 
+   - Effective and expiration dates
 
+   - Payment terms and financial obligations
 
-1\. \*\*Email Monitoring\*\*: System continuously monitors a designated email inbox for new contract emails
+   - Termination and penalty clauses
 
-2\. \*\*Document Storage\*\*: Automatically saves contract attachments to Google Drive
+   - Risk factors and compliance issues
 
-3\. \*\*AI Analysis\*\*: Uses GPT-4 to analyze contract text and extract:
+4. **Risk Assessment**: Calculates an overall risk score (0-100) and categorizes as:
 
-&#x20;  - Parties involved
+   - **High Risk** (70-100): Routes to Legal Team via Slack
 
-&#x20;  - Effective and expiration dates
+   - **Medium Risk** (40-69): Routes to Finance Team via Email
 
-&#x20;  - Payment terms and financial obligations
+   - **Low Risk** (0-39): Routes to Sales Team via Email
 
-&#x20;  - Termination and penalty clauses
+5. **Logging**: All processed contracts are logged in Google Sheets with full details
 
-&#x20;  - Risk factors and compliance issues
+6. **Notification**: Appropriate teams receive detailed notifications with contract summaries and risk assessments
 
-4\. \*\*Risk Assessment\*\*: Calculates an overall risk score (0-100) and categorizes as:
 
-&#x20;  - \*\*High Risk\*\* (70-100): Routes to Legal Team via Slack
+## 🚀 How to Use
 
-&#x20;  - \*\*Medium Risk\*\* (40-69): Routes to Finance Team via Email
 
-&#x20;  - \*\*Low Risk\*\* (0-39): Routes to Sales Team via Email
+### Prerequisites
 
-5\. \*\*Logging\*\*: All processed contracts are logged in Google Sheets with full details
 
-6\. \*\*Notification\*\*: Appropriate teams receive detailed notifications with contract summaries and risk assessments
+- n8n instance (self-hosted or cloud)
 
+- Email account with IMAP access
 
+- Google Drive account
 
-\## 🚀 How to Use
+- Google Sheets account
 
+- OpenAI API key
 
+- Slack workspace (optional)
 
-\### Prerequisites
 
+### Setup Steps
 
 
-\- n8n instance (self-hosted or cloud)
+1. **Import Workflow**
 
-\- Email account with IMAP access
+   - Open n8n
 
-\- Google Drive account
+   - Click "Import from File"
 
-\- Google Sheets account
+   - Select `workflow.json`
 
-\- OpenAI API key
 
-\- Slack workspace (optional)
+2. **Configure Email Trigger**
 
+   - Set your email credentials (IMAP server, username, password)
 
+   - Update subject filter if needed (default: "New Contract")
 
-\### Setup Steps
 
+3. **Configure Google Drive**
 
+   - Connect your Google Drive account
 
-1\. \*\*Import Workflow\*\*
+   - Update `YOUR_GOOGLE_DRIVE_ID` with your Drive ID
 
-&#x20;  - Open n8n
+   - Update `YOUR_CONTRACTS_FOLDER_ID` with target folder ID
 
-&#x20;  - Click "Import from File"
 
-&#x20;  - Select `workflow.json`
+4. **Configure OpenAI**
 
+   - Add your OpenAI API credentials
 
+   - Model is set to GPT-4 (can be changed)
 
-2\. \*\*Configure Email Trigger\*\*
 
-&#x20;  - Set your email credentials (IMAP server, username, password)
+5. **Configure Google Sheets**
 
-&#x20;  - Update subject filter if needed (default: "New Contract")
+   - Connect your Google Sheets account
 
+   - Update `YOUR_GOOGLE_SHEET_ID` with your sheet ID
 
+   - Create a sheet named "ContractsLog" with columns:
 
-3\. \*\*Configure Google Drive\*\*
+     - contract_id
 
-&#x20;  - Connect your Google Drive account
+     - file_name
 
-&#x20;  - Update `YOUR\_GOOGLE\_DRIVE\_ID` with your Drive ID
+     - received_at
 
-&#x20;  - Update `YOUR\_CONTRACTS\_FOLDER\_ID` with target folder ID
+     - parties
 
+     - effective_date
 
+     - expiration_date
 
-4\. \*\*Configure OpenAI\*\*
+     - risk_score
 
-&#x20;  - Add your OpenAI API credentials
+     - risk_level
 
-&#x20;  - Model is set to GPT-4 (can be changed)
+     - recommended_action
 
+     - route_to
 
+     - drive_url
 
-5\. \*\*Configure Google Sheets\*\*
+     - processed_at
 
-&#x20;  - Connect your Google Sheets account
 
-&#x20;  - Update `YOUR\_GOOGLE\_SHEET\_ID` with your sheet ID
+6. **Configure Slack (Optional)**
 
-&#x20;  - Create a sheet named "ContractsLog" with columns:
+   - Connect your Slack account
 
-&#x20;    - contract\_id
+   - Update channel name (default: #legal-alerts)
 
-&#x20;    - file\_name
 
-&#x20;    - received\_at
+7. **Configure Email Notifications**
 
-&#x20;    - parties
+   - Update email addresses in the email nodes:
 
-&#x20;    - effective\_date
+     - finance@yourcompany.com
 
-&#x20;    - expiration\_date
+     - sales@yourcompany.com
 
-&#x20;    - risk\_score
+   - Update sender email (default: contracts@yourcompany.com)
 
-&#x20;    - risk\_level
 
-&#x20;    - recommended\_action
+8. **Activate Workflow**
 
-&#x20;    - route\_to
+   - Toggle the workflow to "Active"
 
-&#x20;    - drive\_url
+   - Test by sending a contract email to your monitored inbox
 
-&#x20;    - processed\_at
 
+## 🔐 Credentials Required
 
 
-6\. \*\*Configure Slack (Optional)\*\*
+- **IMAP Email**: Email server credentials
 
-&#x20;  - Connect your Slack account
+- **Google Drive OAuth2**: Google Drive API access
 
-&#x20;  - Update channel name (default: #legal-alerts)
+- **Google Sheets OAuth2**: Google Sheets API access
 
+- **OpenAI API**: OpenAI API key
 
+- **SMTP Email**: Email sending credentials
 
-7\. \*\*Configure Email Notifications\*\*
+- **Slack API**: Slack bot token (optional)
 
-&#x20;  - Update email addresses in the email nodes:
 
-&#x20;    - finance@yourcompany.com
-
-&#x20;    - sales@yourcompany.com
-
-&#x20;  - Update sender email (default: contracts@yourcompany.com)
-
-
-
-8\. \*\*Activate Workflow\*\*
-
-&#x20;  - Toggle the workflow to "Active"
-
-&#x20;  - Test by sending a contract email to your monitored inbox
-
-
-
-\## 🔐 Credentials Required
-
-
-
-\- \*\*IMAP Email\*\*: Email server credentials
-
-\- \*\*Google Drive OAuth2\*\*: Google Drive API access
-
-\- \*\*Google Sheets OAuth2\*\*: Google Sheets API access
-
-\- \*\*OpenAI API\*\*: OpenAI API key
-
-\- \*\*SMTP Email\*\*: Email sending credentials
-
-\- \*\*Slack API\*\*: Slack bot token (optional)
-
-
-
-\## 📊 Risk Scoring Logic
-
+## 📊 Risk Scoring Logic
 
 
 The system uses the following risk assessment criteria:
 
 
+- **High Risk (70-100)**:
 
-\- \*\*High Risk (70-100)\*\*:
+  - Unusual payment terms
 
-&#x20; - Unusual payment terms
+  - Excessive penalties
 
-&#x20; - Excessive penalties
+  - Compliance concerns
 
-&#x20; - Compliance concerns
+  - Unclear termination clauses
 
-&#x20; - Unclear termination clauses
+  - Multiple risk factors identified
 
-&#x20; - Multiple risk factors identified
 
+- **Medium Risk (40-69)**:
 
+  - Non-standard payment terms
 
-\- \*\*Medium Risk (40-69)\*\*:
+  - Moderate financial obligations
 
-&#x20; - Non-standard payment terms
+  - Some compliance considerations
 
-&#x20; - Moderate financial obligations
+  - Standard but complex clauses
 
-&#x20; - Some compliance considerations
 
-&#x20; - Standard but complex clauses
+- **Low Risk (0-39)**:
 
+  - Standard payment terms
 
+  - Clear obligations
 
-\- \*\*Low Risk (0-39)\*\*:
+  - No compliance issues
 
-&#x20; - Standard payment terms
+  - Standard contract language
 
-&#x20; - Clear obligations
 
-&#x20; - No compliance issues
+## 💡 Use Cases
 
-&#x20; - Standard contract language
 
+- **Legal Departments**: Automate initial contract review and risk assessment
 
+- **Procurement Teams**: Streamline vendor contract processing
 
-\## 💡 Use Cases
+- **Sales Operations**: Quick assessment of customer contracts
 
+- **Compliance Teams**: Flag contracts with potential compliance issues
 
+- **Executive Management**: Get instant visibility into contract risk exposure
 
-\- \*\*Legal Departments\*\*: Automate initial contract review and risk assessment
 
-\- \*\*Procurement Teams\*\*: Streamline vendor contract processing
+## 🔧 Customization Ideas
 
-\- \*\*Sales Operations\*\*: Quick assessment of customer contracts
 
-\- \*\*Compliance Teams\*\*: Flag contracts with potential compliance issues
+- Add integration with DocuSign for digital signatures
 
-\- \*\*Executive Management\*\*: Get instant visibility into contract risk exposure
+- Implement automatic contract renewal reminders
 
+- Add multi-language support for international contracts
 
+- Create a dashboard for contract analytics
 
-\## 🔧 Customization Ideas
+- Integrate with CRM systems (Salesforce, HubSpot)
 
+- Add automated clause comparison with standard templates
 
 
-\- Add integration with DocuSign for digital signatures
+## 📝 Notes
 
-\- Implement automatic contract renewal reminders
 
-\- Add multi-language support for international contracts
+- The AI analysis quality depends on the contract text clarity
 
-\- Create a dashboard for contract analytics
+- For very long contracts, consider splitting into sections
 
-\- Integrate with CRM systems (Salesforce, HubSpot)
+- Risk scoring thresholds can be adjusted in the Code Node
 
-\- Add automated clause comparison with standard templates
+- Email templates can be customized for your organization
 
+- Consider adding error handling for failed AI analyses
 
 
-\## 📝 Notes
+## 🐛 Troubleshooting
 
 
+**Issue**: Email trigger not working
 
-\- The AI analysis quality depends on the contract text clarity
+- **Solution**: Verify IMAP credentials and ensure "Less secure app access" is enabled
 
-\- For very long contracts, consider splitting into sections
 
-\- Risk scoring thresholds can be adjusted in the Code Node
+**Issue**: AI analysis returning errors
 
-\- Email templates can be customized for your organization
+- **Solution**: Check OpenAI API key and ensure contract text is readable
 
-\- Consider adding error handling for failed AI analyses
 
+**Issue**: Google Drive upload failing
 
+- **Solution**: Verify folder permissions and Drive API access
 
-\## 🐛 Troubleshooting
 
+**Issue**: Risk score seems incorrect
 
+- **Solution**: Adjust the scoring logic in the Code Node
 
-\*\*Issue\*\*: Email trigger not working
 
-\- \*\*Solution\*\*: Verify IMAP credentials and ensure "Less secure app access" is enabled
-
-
-
-\*\*Issue\*\*: AI analysis returning errors
-
-\- \*\*Solution\*\*: Check OpenAI API key and ensure contract text is readable
-
-
-
-\*\*Issue\*\*: Google Drive upload failing
-
-\- \*\*Solution\*\*: Verify folder permissions and Drive API access
-
-
-
-\*\*Issue\*\*: Risk score seems incorrect
-
-\- \*\*Solution\*\*: Adjust the scoring logic in the Code Node
-
-
-
-\## 📄 License
-
+## 📄 License
 
 
 This workflow is provided as-is for educational and commercial use.
 
 
-
-\## 🤝 Contributing
-
+## 🤝 Contributing
 
 
 Feel free to fork, modify, and improve this workflow for your specific needs.
 
 
-
 \---
 
 
+**Created for**: agentic-automation-lab
 
-\*\*Created for\*\*: n8n-workflows-practice  
+**Exercise**: 11 - Smart Contract Management
 
-\*\*Exercise\*\*: 11 - Smart Contract Management  
+**Author**: Koroosh
 
-\*\*Author\*\*: Koroosh  
-
-\*\*Date\*\*: 2026
-
+**Date**: 2026

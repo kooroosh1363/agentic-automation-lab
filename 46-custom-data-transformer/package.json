@@ -15,7 +15,7 @@
   "author": "kooroosh1363",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kooroosh1363/n8n-workflows-practice.git"
+    "url": "https://github.com/kooroosh1363/agentic-automation-lab.git"
   },
   "main": "dist/nodes/DataTransformer/DataTransformer.node.js",
   "scripts": {

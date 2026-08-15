@@ -2,7 +2,7 @@
 
 <div align="center">
 
-### From Workflow Automation to Production-Grade Agentic Systems
+### From Workflow Automation to Production-Oriented Agentic Systems
 
 **50 Projects · AI Agents · RAG · Multi-Agent Systems · Data Engineering · Production Infrastructure**
 
@@ -11,6 +11,7 @@
 ![RAG](https://img.shields.io/badge/RAG-Knowledge_Systems-0A66C2?style=for-the-badge)
 ![Data](https://img.shields.io/badge/Data-ETL_%26_PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Projects](https://img.shields.io/badge/Projects-50-2EA44F?style=for-the-badge)
+[![Repository Quality](https://github.com/kooroosh1363/agentic-automation-lab/actions/workflows/quality.yml/badge.svg)](https://github.com/kooroosh1363/agentic-automation-lab/actions/workflows/quality.yml)
 
 *A progressive engineering portfolio covering automation, AI-assisted decision systems, retrieval-augmented generation, multi-agent orchestration, production n8n infrastructure, custom nodes, and data engineering.*
 
@@ -25,6 +26,26 @@ This repository is intentionally structured as a progression from practical work
 **Automation Foundations** → **Business & AI-Enhanced Automation** → **AI Decision & Enterprise Automation** → **RAG & Agentic Systems** → **Production n8n Engineering** → **Data & Intelligent Operations**
 
 The projects move beyond isolated demos: later systems emphasize orchestration, reliability, human-in-the-loop controls, retrieval, multi-agent coordination, infrastructure, observability, and resilient data pipelines.
+
+---
+
+## 🪜 Portfolio Levels
+
+The project number reflects the learning stage and expected engineering depth. The labels describe portfolio maturity, not a claim that every workflow has been deployed to a live production environment.
+
+| Level | Projects | Evidence demonstrated |
+|---|---:|---|
+| **Foundation** | 01-10 | Webhooks, APIs, routing, data handling, and core n8n patterns |
+| **Intermediate** | 11-20 | Multi-step business processes, integrations, alerts, and audit-friendly flows |
+| **Advanced** | 21-40 | Databases, ETL, OCR, scoring, RAG, AI decisions, and multi-agent orchestration |
+| **Production-oriented** | 41-49 | Availability, backup, monitoring, custom nodes, DLQ, and human approval patterns |
+| **Capstone** | 50 | Modular parent/child orchestration integrating the earlier engineering themes |
+
+### Validation language
+
+- **Demonstration:** designed and documented as a learning workflow.
+- **Tested reference:** includes reproducible setup and validation steps.
+- **Production-oriented:** demonstrates relevant reliability patterns but still requires environment-specific security, load testing, credentials, and operational validation before deployment.
 
 ---
 
