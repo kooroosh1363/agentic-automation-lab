@@ -1,0 +1,8 @@
+[
+  {"id":"ETL-01","scenario":"valid records from all sources","expected":"UPSERTED"},
+  {"id":"ETL-02","scenario":"invalid email","expected":"DLQ_INVALID_EMAIL"},
+  {"id":"ETL-03","scenario":"missing canonical ID","expected":"DLQ_MISSING_ID"},
+  {"id":"ETL-04","scenario":"same ID is replayed","expected":"UPDATED_NOT_DUPLICATED"},
+  {"id":"ETL-05","scenario":"source times out after bounded retries","expected":"SOURCE_FAILURE"},
+  {"id":"ETL-06","scenario":"warehouse is unavailable","expected":"LOAD_FAILURE_NOT_SUCCESS"}
+]

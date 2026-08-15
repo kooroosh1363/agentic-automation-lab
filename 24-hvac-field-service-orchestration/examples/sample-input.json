@@ -1,0 +1,8 @@
+{
+  "request_id": "req-hvac-001",
+  "customer_name": "Sample Customer",
+  "customer_address": "Example Service Area",
+  "customer_lat": 35.7005,
+  "customer_lon": 51.4012,
+  "issue_description": "The AC is running but not cooling; the thermostat appears normal."
+}

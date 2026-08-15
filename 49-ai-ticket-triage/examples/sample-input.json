@@ -1,0 +1,6 @@
+{
+  "ticket_id": "ticket-001",
+  "subject": "Unexpected account charge",
+  "message": "Please explain this charge before any refund is attempted.",
+  "customer_email": "customer@example.com"
+}

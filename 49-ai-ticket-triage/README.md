@@ -221,3 +221,11 @@ curl -X POST https://YOUR_N8N/webhook-waiting/APPROVAL_PATH \
 Repository: https://github.com/kooroosh1363/agentic-automation-lab
 Author: kooroosh1363
 Date: 2026
+
+## Engineering Evidence
+
+- [Business problem, architecture, data flow, security, trade-offs, and production readiness](docs/engineering-evidence.md)
+- [Sample input](examples/sample-input.json) and [sample output](examples/sample-output.json)
+- [Test and failure scenarios](tests/test-cases.json)
+
+Malformed AI output now receives confidence zero and is forced to human review. Approval processing also preserves the original ticket and triage context for downstream actions and auditability.

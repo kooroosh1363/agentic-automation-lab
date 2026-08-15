@@ -1,0 +1,14 @@
+{
+  "request_id": "req-hvac-001",
+  "dispatch_status": "AUTO_DISPATCH_READY",
+  "assigned_technician": {
+    "id": "TECH-001",
+    "name": "Sample Technician",
+    "distanceKm": 2.4,
+    "partsAvailable": true,
+    "score": 91.2
+  },
+  "parts_available": true,
+  "candidate_count": 2,
+  "final_price_usd": 153.6
+}

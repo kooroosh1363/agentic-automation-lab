@@ -48,7 +48,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Parse the LLM JSON output safely\nconst raw = $input.first().json.choices?.[0]?.message?.content || '{}';\nlet parsed = {};\ntry { parsed = JSON.parse(raw); } catch (e) { parsed = {}; }\n\nconst priority = parsed.priority || 'normal';\nreturn [{ json: {\n  ...$('Parse Ticket').item.json,\n  priority,\n  category: parsed.category || 'other',\n  sentiment: parsed.sentiment || 'neutral',\n  confidence: Number(parsed.confidence) || 0,\n  sensitive: priority === 'critical' || priority === 'high'\n}}];"
+      "jsCode": "// Parse and validate the structured LLM response. Invalid output is forced to manual review.\nconst ticket = $('Parse Ticket').first().json;\nconst raw = $input.first().json.choices?.[0]?.message?.content ?? '{}';\nlet parsed = {};\nlet parseError = null;\ntry {\n  parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;\n} catch (error) {\n  parseError = 'invalid_json';\n}\n\nconst priorities = ['critical', 'high', 'normal', 'low'];\nconst categories = ['billing', 'technical', 'account', 'other'];\nconst sentiments = ['positive', 'neutral', 'negative'];\nconst priority = priorities.includes(parsed.priority) ? parsed.priority : 'normal';\nconst category = categories.includes(parsed.category) ? parsed.category : 'other';\nconst sentiment = sentiments.includes(parsed.sentiment) ? parsed.sentiment : 'neutral';\nconst numericConfidence = Number(parsed.confidence);\nconst confidence = parseError || !Number.isFinite(numericConfidence)\n  ? 0\n  : Math.max(0, Math.min(1, numericConfidence));\n\nreturn [{ json: {\n  ...ticket,\n  priority,\n  category,\n  sentiment,\n  confidence,\n  sensitive: priority === 'critical' || priority === 'high',\n  aiOutputValid: parseError === null && Number.isFinite(numericConfidence),\n  parseError,\n} }];"
       },
       "id": "parse-ai",
       "name": "Parse AI Output",
@@ -130,7 +130,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body || $input.first().json;\nreturn [{ json: { approved: body.approved === true || body.approved === 'true' } }];"
+      "jsCode": "// Preserve triage context while recording the human decision.\nconst original = $('Parse AI Output').first().json;\nconst payload = $input.first().json.body || $input.first().json;\nconst approved = payload.approved === true || payload.approved === 'true';\n\nreturn [{ json: {\n  ...original,\n  approved,\n  approval: {\n    decision: approved ? 'approved' : 'rejected',\n    approver: payload.approver || 'unknown',\n    reason: payload.reason || null,\n    decidedAt: new Date().toISOString(),\n  },\n} }];"
       },
       "id": "read-approval",
       "name": "Read Approval",

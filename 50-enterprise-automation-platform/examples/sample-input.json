@@ -1,0 +1,7 @@
+{
+  "request_id": "platform-001",
+  "channel": "web",
+  "subject": "Account access request",
+  "message": "A user needs access restored after identity verification.",
+  "customer_email": "requester@example.com"
+}
