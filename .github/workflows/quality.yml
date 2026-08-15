@@ -18,6 +18,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: python scripts/validate_repository.py
+      - run: python scripts/validate_flagship_projects.py
 
   yaml-validation:
     name: YAML and Compose

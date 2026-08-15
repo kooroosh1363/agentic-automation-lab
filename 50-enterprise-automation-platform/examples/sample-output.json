@@ -1,0 +1,9 @@
+{
+  "requestId": "platform-001",
+  "platformStatus": "COMPLETED",
+  "stages": [
+    {"stage":"Intake","completed":true,"confidence":0.91},
+    {"stage":"ETL","completed":true,"stored":true,"dlq":false},
+    {"stage":"Fulfillment","completed":true}
+  ]
+}

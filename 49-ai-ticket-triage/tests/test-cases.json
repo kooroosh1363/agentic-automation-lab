@@ -1,0 +1,8 @@
+[
+  {"id":"AI-01","scenario":"normal priority and confidence 0.90","expected":"AUTO_REPLY"},
+  {"id":"AI-02","scenario":"confidence 0.45","expected":"HUMAN_ESCALATION"},
+  {"id":"AI-03","scenario":"model returns malformed JSON","expected":"HUMAN_ESCALATION"},
+  {"id":"AI-04","scenario":"high priority and human approves","expected":"SEND_APPROVED_RESPONSE"},
+  {"id":"AI-05","scenario":"critical priority and human rejects","expected":"NOTIFY_REJECTION"},
+  {"id":"AI-06","scenario":"approval exceeds SLA","expected":"APPROVAL_TIMEOUT_ESCALATION"}
+]

@@ -1,0 +1,7 @@
+[
+  {"id":"HVAC-01","scenario":"matching skill and all parts","expected":"AUTO_DISPATCH_READY"},
+  {"id":"HVAC-02","scenario":"no technician has required skill","expected":"MANUAL_REVIEW_REQUIRED"},
+  {"id":"HVAC-03","scenario":"best candidate lacks a required part","expected":"MANUAL_REVIEW_REQUIRED"},
+  {"id":"HVAC-04","scenario":"coordinates are invalid","expected":"VALIDATION_ERROR"},
+  {"id":"HVAC-05","scenario":"request_id is replayed","expected":"NO_DUPLICATE_BOOKING"}
+]

@@ -1,0 +1,10 @@
+{
+  "ticketId": "ticket-001",
+  "priority": "high",
+  "category": "billing",
+  "sentiment": "negative",
+  "confidence": 0.89,
+  "sensitive": true,
+  "aiOutputValid": true,
+  "route": "DRAFT_AND_HUMAN_APPROVAL"
+}

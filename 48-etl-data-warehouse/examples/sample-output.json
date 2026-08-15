@@ -1,0 +1,7 @@
+{
+  "status": "COMPLETED_WITH_REJECTIONS",
+  "totalProcessed": 3,
+  "loadedToWarehouse": 1,
+  "sentToDlq": 2,
+  "rejectedReasons": ["invalid_email", "missing_id"]
+}

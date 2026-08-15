@@ -1,0 +1,5 @@
+[
+  {"customer_id":"c-201","full_name":"Sample One","email_address":"one@example.com","source":"postgres"},
+  {"userId":"c-202","username":"Sample Two","email":"invalid-email","source":"csv"},
+  {"id":null,"name":"Missing Identifier","email":"missing@example.com","source":"api"}
+]

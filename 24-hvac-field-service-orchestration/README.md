@@ -183,3 +183,14 @@ Twilio SMS Fails: Check that the destination phone number is in E.164 format (e.
 License
 
 This project is licensed under the MIT License.
+
+## Engineering Evidence
+
+The portfolio evidence for this project is intentionally separated from the setup guide:
+
+- [Business problem, architecture, data flow, security, trade-offs, and production readiness](docs/engineering-evidence.md)
+- [Sample input](examples/sample-input.json) and [sample output](examples/sample-output.json)
+- [Test and failure scenarios](tests/test-cases.json)
+- [Reproducible PostgreSQL technician schema and sample fixtures](sql/init.sql)
+
+The workflow now scores the technicians returned by PostgreSQL instead of a hard-coded technician list. The documentation clearly distinguishes implemented behavior from production follow-up work.

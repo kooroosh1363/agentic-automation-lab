@@ -1,0 +1,9 @@
+[
+  {"id":"CAP-01","scenario":"valid low-risk request","expected":"COMPLETED"},
+  {"id":"CAP-02","scenario":"triage confidence below 0.7","expected":"ESCALATED_LOW_CONFIDENCE"},
+  {"id":"CAP-03","scenario":"invalid customer email","expected":"DLQ"},
+  {"id":"CAP-04","scenario":"sensitive request is approved","expected":"FULFILLED_APPROVED"},
+  {"id":"CAP-05","scenario":"sensitive request is rejected","expected":"REJECTED"},
+  {"id":"CAP-06","scenario":"fulfillment child fails after ETL","expected":"PARTIAL_FAILURE_RETRYABLE"},
+  {"id":"CAP-07","scenario":"request_id is replayed","expected":"NO_DUPLICATE_SIDE_EFFECT"}
+]

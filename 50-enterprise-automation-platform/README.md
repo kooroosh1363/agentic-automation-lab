@@ -262,3 +262,11 @@ This capstone ties them into a production-oriented reference platform. Productio
 Repository: https://github.com/kooroosh1363/agentic-automation-lab
 Author: kooroosh1363
 Date: 2026
+
+## Engineering Evidence
+
+- [Business problem, architecture, data flow, security, trade-offs, and production readiness](docs/engineering-evidence.md)
+- [Sample input](examples/sample-input.json) and [sample output](examples/sample-output.json)
+- [Test and failure scenarios](tests/test-cases.json)
+
+The evidence pack defines parent/child responsibilities, the cross-workflow data contract, partial-failure behavior, security boundaries, and the remaining work required before a production deployment.
