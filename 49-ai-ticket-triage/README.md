@@ -1,4 +1,6 @@
-AI Ticket Triage & Smart Response System
+# AI Ticket Triage & Smart Response System
+
+![Level](https://img.shields.io/badge/Level-Production--oriented-198754)
 
 > Project 49 of the n8n Enterprise practice series
 > An intelligent support-ticket pipeline that classifies tickets with an LLM, routes by priority, auto-answers routine tickets, and requires human approval for sensitive ones
@@ -216,6 +218,6 @@ curl -X POST https://YOUR_N8N/webhook-waiting/APPROVAL_PATH \
 
 ---
 
-Repository: https://github.com/kooroosh1363/n8n-workflows-practice
+Repository: https://github.com/kooroosh1363/agentic-automation-lab
 Author: kooroosh1363
 Date: 2026

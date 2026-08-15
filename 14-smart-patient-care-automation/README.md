@@ -1,270 +1,232 @@
-\# Smart Patient Care Automation
+# Smart Patient Care Automation
+
+![Level](https://img.shields.io/badge/Level-Intermediate-0D6EFD)
 
 
-
-\## 📋 Description
-
+## 📋 Description
 
 
 A comprehensive healthcare automation system designed for clinics and medical centers. It manages the entire patient journey from appointment booking and AI-powered medical triage to automated time-delayed reminders and post-visit follow-ups, ensuring high patient engagement and reducing no-show rates.
 
 
+## 🔧 Nodes Used
 
-\## 🔧 Nodes Used
 
+- **Webhook** - Receives appointment requests and follow-up responses
 
+- **OpenAI GPT-4** - AI medical triage and post-visit symptom analysis
 
-\- \*\*Webhook\*\* - Receives appointment requests and follow-up responses
+- **Google Calendar** - Checks availability and creates appointment events
 
-\- \*\*OpenAI GPT-4\*\* - AI medical triage and post-visit symptom analysis
+- **Google Sheets** - Stores appointment records and follow-up logs
 
-\- \*\*Google Calendar\*\* - Checks availability and creates appointment events
+- **Telegram** - Sends confirmation, reminders, and follow-up questionnaires
 
-\- \*\*Google Sheets\*\* - Stores appointment records and follow-up logs
+- **Wait Node** - Implements time-delayed actions (24h, 2h, 48h delays)
 
-\- \*\*Telegram\*\* - Sends confirmation, reminders, and follow-up questionnaires
+- **IF Node** - Conditional routing for doctor alerts
 
-\- \*\*Wait Node\*\* - Implements time-delayed actions (24h, 2h, 48h delays)
+- **Code Node** - Calculates appointment times and processes data
 
-\- \*\*IF Node\*\* - Conditional routing for doctor alerts
 
-\- \*\*Code Node\*\* - Calculates appointment times and processes data
+##  Workflow Diagram
 
 
+![Workflow Diagram](screenshots/workflow-diagram.png)
 
-\##  Workflow Diagram
 
+## ⚙️ How It Works
 
 
-!\[Workflow Diagram](screenshots/workflow-diagram.png)
+### Phase 1: Appointment Booking & Triage
 
+1. **Request Received**: Patient sends an appointment request via Webhook or Telegram.
 
+2. **AI Triage**: GPT-4 analyzes symptoms to determine urgency level (Emergency, Urgent, Normal) and priority score.
 
-\## ⚙️ How It Works
+3. **Scheduling**: System calculates the best appointment time based on urgency and checks Google Calendar.
 
+4. **Confirmation**: Appointment is saved to the database, added to the clinic's calendar, and a confirmation message is sent to the patient.
 
 
-\### Phase 1: Appointment Booking \& Triage
+### Phase 2: Automated Reminders
 
-1\. \*\*Request Received\*\*: Patient sends an appointment request via Webhook or Telegram.
+1. **24-Hour Reminder**: Sent one day before the appointment to reduce no-shows.
 
-2\. \*\*AI Triage\*\*: GPT-4 analyzes symptoms to determine urgency level (Emergency, Urgent, Normal) and priority score.
+2. **2-Hour Reminder**: Sent two hours before the appointment with location and contact details.
 
-3\. \*\*Scheduling\*\*: System calculates the best appointment time based on urgency and checks Google Calendar.
 
-4\. \*\*Confirmation\*\*: Appointment is saved to the database, added to the clinic's calendar, and a confirmation message is sent to the patient.
+### Phase 3: Post-Visit Follow-up
 
+1. **Questionnaire**: 48 hours after the visit, an automated health check questionnaire is sent to the patient.
 
+2. **Response Analysis**: Patient's response is analyzed by AI to assess symptom improvement and risk level.
 
-\### Phase 2: Automated Reminders
+3. **Smart Routing**:
 
-1\. \*\*24-Hour Reminder\*\*: Sent one day before the appointment to reduce no-shows.
+   - If high risk/adverse effects are detected, an immediate alert is sent to the doctor.
 
-2\. \*\*2-Hour Reminder\*\*: Sent two hours before the appointment with location and contact details.
+   - Otherwise, a standard recovery confirmation is sent to the patient.
 
+4. **Logging**: All follow-up data is securely logged in Google Sheets.
 
 
-\### Phase 3: Post-Visit Follow-up
+## 🚀 How to Use
 
-1\. \*\*Questionnaire\*\*: 48 hours after the visit, an automated health check questionnaire is sent to the patient.
 
-2\. \*\*Response Analysis\*\*: Patient's response is analyzed by AI to assess symptom improvement and risk level.
+### Prerequisites
 
-3\. \*\*Smart Routing\*\*: 
 
-&#x20;  - If high risk/adverse effects are detected, an immediate alert is sent to the doctor.
+- n8n instance (self-hosted or cloud)
 
-&#x20;  - Otherwise, a standard recovery confirmation is sent to the patient.
+- OpenAI API key
 
-4\. \*\*Logging\*\*: All follow-up data is securely logged in Google Sheets.
+- Google Calendar account
 
+- Google Sheets account
 
+- Telegram Bot Token and Chat IDs
 
-\## 🚀 How to Use
 
+### Setup Steps
 
 
-\### Prerequisites
+1. **Import Workflow**
 
+   - Open n8n and import `workflow.json`.
 
 
-\- n8n instance (self-hosted or cloud)
+2. **Configure Webhooks**
 
-\- OpenAI API key
+   - Copy the production URLs for `Appointment Request Webhook` and `Follow-up Response Webhook`.
 
-\- Google Calendar account
+   - Use these URLs in your frontend form or Telegram bot.
 
-\- Google Sheets account
 
-\- Telegram Bot Token and Chat IDs
+3. **Configure AI (OpenAI)**
 
+   - Connect your OpenAI API credentials to both AI nodes.
 
 
-\### Setup Steps
+4. **Configure Google Calendar**
 
+   - Connect your Google Calendar OAuth2 account.
 
+   - Update `YOUR_GOOGLE_CALENDAR_ID` in the "Check Calendar Availability" and "Create Calendar Event" nodes.
 
-1\. \*\*Import Workflow\*\*
 
-&#x20;  - Open n8n and import `workflow.json`.
+5. **Configure Google Sheets**
 
+   - Connect your Google Sheets OAuth2 account.
 
+   - Update `YOUR_GOOGLE_SHEET_ID`.
 
-2\. \*\*Configure Webhooks\*\*
+   - Create two sheets:
 
-&#x20;  - Copy the production URLs for `Appointment Request Webhook` and `Follow-up Response Webhook`.
+     - **"Appointments"**: appointment_id, patient_name, patient_email, patient_phone, age, symptoms, specialty, urgency_level, priority_score, appointment_time, estimated_duration, status, created_at.
 
-&#x20;  - Use these URLs in your frontend form or Telegram bot.
+     - **"FollowUpLog"**: appointment_id, patient_name, follow_up_response, symptom_improvement, risk_level, doctor_alert_needed, needs_follow_up_visit, processed_at.
 
 
+6. **Configure Telegram**
 
-3\. \*\*Configure AI (OpenAI)\*\*
+   - Connect your Telegram Bot API.
 
-&#x20;  - Connect your OpenAI API credentials to both AI nodes.
+   - Update `YOUR_TELEGRAM_CHAT_ID` for patient messages.
 
+   - Update `YOUR_DOCTOR_TELEGRAM_CHAT_ID` for medical alerts.
 
 
-4\. \*\*Configure Google Calendar\*\*
+7. **Activate Workflow**
 
-&#x20;  - Connect your Google Calendar OAuth2 account.
+   - Toggle the workflow to "Active" to enable the Webhooks and Wait nodes.
 
-&#x20;  - Update `YOUR\_GOOGLE\_CALENDAR\_ID` in the "Check Calendar Availability" and "Create Calendar Event" nodes.
 
+## 🔐 Credentials Required
 
 
-5\. \*\*Configure Google Sheets\*\*
+- **OpenAI API**: OpenAI API key
 
-&#x20;  - Connect your Google Sheets OAuth2 account.
+- **Google Calendar OAuth2**: Google Calendar API access
 
-&#x20;  - Update `YOUR\_GOOGLE\_SHEET\_ID`.
+- **Google Sheets OAuth2**: Google Sheets API access
 
-&#x20;  - Create two sheets:
+- **Telegram Bot API**: Telegram Bot Token
 
-&#x20;    - \*\*"Appointments"\*\*: appointment\_id, patient\_name, patient\_email, patient\_phone, age, symptoms, specialty, urgency\_level, priority\_score, appointment\_time, estimated\_duration, status, created\_at.
 
-&#x20;    - \*\*"FollowUpLog"\*\*: appointment\_id, patient\_name, follow\_up\_response, symptom\_improvement, risk\_level, doctor\_alert\_needed, needs\_follow\_up\_visit, processed\_at.
+## 💡 Use Cases
 
 
+- **Private Clinics**: Automate booking and reduce administrative workload.
 
-6\. \*\*Configure Telegram\*\*
+- **Hospitals**: Manage high volumes of patient inquiries and follow-ups.
 
-&#x20;  - Connect your Telegram Bot API.
+- **Telemedicine Platforms**: Streamline virtual consultation workflows.
 
-&#x20;  - Update `YOUR\_TELEGRAM\_CHAT\_ID` for patient messages.
+- **Dental & Aesthetic Centers**: Reduce appointment cancellations and no-shows.
 
-&#x20;  - Update `YOUR\_DOCTOR\_TELEGRAM\_CHAT\_ID` for medical alerts.
 
+## 🔧 Customization Ideas
 
 
-7\. \*\*Activate Workflow\*\*
+- **SMS Integration**: Replace or add Telegram with SMS gateways (Twilio, Kavenegar) for broader reach.
 
-&#x20;  - Toggle the workflow to "Active" to enable the Webhooks and Wait nodes.
+- **WhatsApp Integration**: Use the WhatsApp Business API for patient communication.
 
+- **Payment Gateway**: Add a node to collect consultation fees before confirming the appointment.
 
+- **EHR/EMR Integration**: Connect to electronic health record systems instead of Google Sheets.
 
-\## 🔐 Credentials Required
+- **Multi-language Support**: Add a language detection node to respond in the patient's preferred language.
 
 
+## 📝 Notes
 
-\- \*\*OpenAI API\*\*: OpenAI API key
 
-\- \*\*Google Calendar OAuth2\*\*: Google Calendar API access
+- **Wait Nodes**: Ensure your n8n instance is configured to handle long-running executions (Wait nodes) properly. If using n8n cloud, it handles this automatically. For self-hosted, ensure the `EXECUTIONS_MODE` supports waiting.
 
-\- \*\*Google Sheets OAuth2\*\*: Google Sheets API access
+- **Privacy**: Ensure compliance with local healthcare data regulations (e.g., HIPAA, GDPR) when storing patient data in Google Sheets.
 
-\- \*\*Telegram Bot API\*\*: Telegram Bot Token
+- **AI Accuracy**: The AI triage is for administrative prioritization and does not replace professional medical diagnosis.
 
 
+## 🐛 Troubleshooting
 
-\## 💡 Use Cases
 
+**Issue**: Wait nodes not resuming
 
+- **Solution**: Ensure n8n is running in a mode that supports webhooks for wait node resumption (e.g., `production` mode with a proper webhook URL).
 
-\- \*\*Private Clinics\*\*: Automate booking and reduce administrative workload.
 
-\- \*\*Hospitals\*\*: Manage high volumes of patient inquiries and follow-ups.
+**Issue**: Google Calendar events not creating
 
-\- \*\*Telemedicine Platforms\*\*: Streamline virtual consultation workflows.
+- **Solution**: Check if the Calendar ID is correct and the OAuth token has write permissions.
 
-\- \*\*Dental \& Aesthetic Centers\*\*: Reduce appointment cancellations and no-shows.
 
+**Issue**: Telegram bot not sending messages
 
+- **Solution**: Verify the Bot Token and ensure the bot is not blocked by the user. Check Chat IDs.
 
-\## 🔧 Customization Ideas
 
-
-
-\- \*\*SMS Integration\*\*: Replace or add Telegram with SMS gateways (Twilio, Kavenegar) for broader reach.
-
-\- \*\*WhatsApp Integration\*\*: Use the WhatsApp Business API for patient communication.
-
-\- \*\*Payment Gateway\*\*: Add a node to collect consultation fees before confirming the appointment.
-
-\- \*\*EHR/EMR Integration\*\*: Connect to electronic health record systems instead of Google Sheets.
-
-\- \*\*Multi-language Support\*\*: Add a language detection node to respond in the patient's preferred language.
-
-
-
-\## 📝 Notes
-
-
-
-\- \*\*Wait Nodes\*\*: Ensure your n8n instance is configured to handle long-running executions (Wait nodes) properly. If using n8n cloud, it handles this automatically. For self-hosted, ensure the `EXECUTIONS\_MODE` supports waiting.
-
-\- \*\*Privacy\*\*: Ensure compliance with local healthcare data regulations (e.g., HIPAA, GDPR) when storing patient data in Google Sheets.
-
-\- \*\*AI Accuracy\*\*: The AI triage is for administrative prioritization and does not replace professional medical diagnosis.
-
-
-
-\## 🐛 Troubleshooting
-
-
-
-\*\*Issue\*\*: Wait nodes not resuming
-
-\- \*\*Solution\*\*: Ensure n8n is running in a mode that supports webhooks for wait node resumption (e.g., `production` mode with a proper webhook URL).
-
-
-
-\*\*Issue\*\*: Google Calendar events not creating
-
-\- \*\*Solution\*\*: Check if the Calendar ID is correct and the OAuth token has write permissions.
-
-
-
-\*\*Issue\*\*: Telegram bot not sending messages
-
-\- \*\*Solution\*\*: Verify the Bot Token and ensure the bot is not blocked by the user. Check Chat IDs.
-
-
-
-\## 📄 License
-
+## 📄 License
 
 
 This workflow is provided as-is for educational and commercial use.
 
 
-
-\## 🤝 Contributing
-
+## 🤝 Contributing
 
 
 Feel free to fork, modify, and improve this workflow for your specific healthcare needs.
 
 
-
 \---
 
 
+**Created for**: agentic-automation-lab
 
-\*\*Created for\*\*: n8n-workflows-practice  
+**Exercise**: 14 - Smart Patient Care Automation
 
-\*\*Exercise\*\*: 14 - Smart Patient Care Automation  
+**Author**: Koroosh
 
-\*\*Author\*\*: Koroosh  
-
-\*\*Date\*\*: 2026
-
+**Date**: 2026

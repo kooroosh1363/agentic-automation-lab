@@ -1,5 +1,7 @@
 # n8n High-Availability Cluster (Self-Hosting)
 
+![Level](https://img.shields.io/badge/Level-Production--oriented-198754)
+
 > Project 41 of the n8n Enterprise practice series
 > High-Availability cluster using Docker Compose, Nginx Load Balancer, PostgreSQL, and Redis Queue Mode
 
@@ -178,6 +180,6 @@ docker compose down -v
 
 ---
 
-Repository: https://github.com/kooroosh1363/n8n-workflows-practice
+Repository: https://github.com/kooroosh1363/agentic-automation-lab
 Author: kooroosh1363
 Date: 2026

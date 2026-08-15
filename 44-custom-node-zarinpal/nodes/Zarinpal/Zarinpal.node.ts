@@ -1,5 +1,6 @@
 import {
 	IExecuteFunctions,
+	IDataObject,
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
@@ -165,7 +166,7 @@ export class Zarinpal implements INodeType {
 					}
 
 					const authority = response.data.authority as string;
-					const output: { [key: string]: unknown } = {
+				const output: IDataObject = {
 						authority,
 						code: response.data.code,
 						fee: response.data.fee,

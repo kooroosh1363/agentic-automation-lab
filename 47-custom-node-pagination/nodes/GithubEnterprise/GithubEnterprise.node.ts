@@ -1,5 +1,6 @@
 import {
 	IExecuteFunctions,
+	IDataObject,
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
@@ -122,7 +123,7 @@ export class GithubEnterprise implements INodeType {
 		};
 
 		// Request with Exponential Backoff + Rate-Limit awareness
-		const requestWithRetry = async (url: string, qs: { [key: string]: unknown } = {}): Promise<{ body: any; headers: any }> => {
+			const requestWithRetry = async (url: string, qs: IDataObject = {}): Promise<{ body: any; headers: any }> => {
 			let attempt = 0;
 			let consecutiveFailures = 0;
 
@@ -178,7 +179,7 @@ export class GithubEnterprise implements INodeType {
 				if (operation === 'getItem') {
 					const itemId = this.getNodeParameter('itemId', i) as string;
 					const { body } = await requestWithRetry(`${baseUrl}${resourcePath}/${itemId}`);
-					returnData.push({ json: body });
+					returnData.push({ json: body as IDataObject });
 				}
 
 				if (operation === 'listItems') {
@@ -203,7 +204,7 @@ export class GithubEnterprise implements INodeType {
 						let cursor: string | null = null;
 						let pages = 0;
 						do {
-							const qs: { [key: string]: unknown } = { per_page: pageSize };
+								const qs: IDataObject = { per_page: pageSize };
 							if (cursor) qs.after = cursor;
 							const { body } = await requestWithRetry(`${baseUrl}${resourcePath}`, qs);
 							const data = extractData(body, dataField);

@@ -1,4 +1,6 @@
-  37 - AI Competitive Intelligence & Market Trend Analyzer
+# 37 - AI Competitive Intelligence & Market Trend Analyzer
+
+![Level](https://img.shields.io/badge/Level-Advanced-6F42C1)
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![n8n Version](https://img.shields.io/badge/n8n-v1.0+-blue)
@@ -93,7 +95,7 @@ For maximum intelligence value, monitor these competitor pages:
 - **AI Context Window:** For very long pages, the 5000 character limit may miss important changes. Solution: Use a summarization step before comparison, or split the page into sections.
 
 ##  Scaling to Enterprise
-For production-grade competitive intelligence:
+For a production deployment of competitive intelligence:
 1. **Multiple Competitors:** Use a `Loop Over Items` node to iterate over a list of competitor URLs from a database.
 2. **Historical Database:** Replace `getWorkflowStaticData()` with a PostgreSQL/Supabase node to store full change history and enable trend analysis over months.
 3. **PDF Reports:** Add an HTML-to-PDF node to generate weekly executive summaries.

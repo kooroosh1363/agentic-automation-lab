@@ -1,7 +1,9 @@
-Multi-Source ETL Pipeline for Data Warehouse (with Dead-Letter Queue)
+# Multi-Source ETL Pipeline for Data Warehouse (with Dead-Letter Queue)
+
+![Level](https://img.shields.io/badge/Level-Production--oriented-198754)
 
 > Project 48 of the n8n Enterprise practice series
-> A production-grade ETL pipeline that extracts from three heterogeneous sources, normalizes and validates data, loads valid records into a Data Warehouse, and routes invalid records to a Dead-Letter Queue
+> A production-oriented ETL pipeline reference that extracts from three heterogeneous sources, normalizes and validates data, loads valid records into a Data Warehouse, and routes invalid records to a Dead-Letter Queue
 
 ---
 
@@ -219,6 +221,6 @@ Run the pipeline twice and confirm `warehouse.customers` row count does not doub
 
 ---
 
-Repository: https://github.com/kooroosh1363/n8n-workflows-practice
+Repository: https://github.com/kooroosh1363/agentic-automation-lab
 Author: kooroosh1363
 Date: 2026

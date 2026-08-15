@@ -1,4 +1,6 @@
- n8n Custom Trigger Node: Bale / Eitaa (Long-Polling)
+# n8n Custom Trigger Node: Bale / Eitaa (Long-Polling)
+
+![Level](https://img.shields.io/badge/Level-Production--oriented-198754)
 
 > Project 45 of the n8n Enterprise practice series
 > A polling trigger node for Iranian messengers Bale and Eitaa, built with the n8n TypeScript SDK
@@ -100,7 +102,7 @@ The compiled output is placed in `dist/` and the SVG icon is copied automaticall
 
 ```bash
 # Windows (PowerShell)
-set N8N_CUSTOM_EXTENSIONS=E:\P\git project\n8n-workflows-practice\45-custom-trigger-bale
+set N8N_CUSTOM_EXTENSIONS=E:\P\git project\agentic-automation-lab\45-custom-trigger-bale
 ```
 
 Restart n8n afterwards.
@@ -111,7 +113,7 @@ Restart n8n afterwards.
 # Windows
 mkdir %USERPROFILE%\.n8n\nodes
 cd %USERPROFILE%\.n8n\nodes
-npm install "E:\P\git project\n8n-workflows-practice\45-custom-trigger-bale"
+npm install "E:\P\git project\agentic-automation-lab\45-custom-trigger-bale"
 
 # Linux / macOS
 mkdir -p ~/.n8n/nodes
@@ -195,6 +197,6 @@ Body: { "chat_id": {{ $json.chatId }}, "text": "Hello!" }
 
 ---
 
-Repository: https://github.com/kooroosh1363/n8n-workflows-practice
+Repository: https://github.com/kooroosh1363/agentic-automation-lab
 Author: kooroosh1363
 Date: 2026

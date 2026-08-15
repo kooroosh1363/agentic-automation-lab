@@ -1,128 +1,123 @@
-\# 24 - HVAC Field Service Orchestration \& Dynamic Dispatch
+# 24 - HVAC Field Service Orchestration & Dynamic Dispatch
 
+![Level](https://img.shields.io/badge/Level-Advanced-6F42C1)
 
 
-\## Description
+## Description
 
-This is an enterprise-grade, highly complex n8n workflow designed for Field Service Management (FSM) in the HVAC and home appliance industry. It automates the entire dispatch lifecycle: from receiving a service request to assigning the optimal technician. The workflow uses AI to parse the issue, queries a database for active technicians, and runs a custom JavaScript scoring algorithm (incorporating the Haversine distance formula, skill matching, van inventory checks, and current workload). Based on the outcome, it dynamically calculates the service price, books a Google Calendar slot, sends an SMS confirmation via Twilio, or triggers a fallback alert to the dispatch manager if no suitable technician is found.
+This is an enterprise-oriented, multi-component n8n workflow designed for Field Service Management (FSM) in the HVAC and home appliance industry. It automates the entire dispatch lifecycle: from receiving a service request to assigning the optimal technician. The workflow uses AI to parse the issue, queries a database for active technicians, and runs a custom JavaScript scoring algorithm (incorporating the Haversine distance formula, skill matching, van inventory checks, and current workload). Based on the outcome, it dynamically calculates the service price, books a Google Calendar slot, sends an SMS confirmation via Twilio, or triggers a fallback alert to the dispatch manager if no suitable technician is found.
 
 
+## Nodes Used
 
-\## Nodes Used
+- **Webhook**: Receives the incoming service request payload (customer details, address, coordinates, issue description).
 
-\- \*\*Webhook\*\*: Receives the incoming service request payload (customer details, address, coordinates, issue description).
+- **OpenAI**: Analyzes the unstructured issue description to extract `device_type`, `issue_summary`, `required_parts` (array), and `urgency` level in strict JSON format.
 
-\- \*\*OpenAI\*\*: Analyzes the unstructured issue description to extract `device\_type`, `issue\_summary`, `required\_parts` (array), and `urgency` level in strict JSON format.
+- **PostgreSQL**: Fetches the list of active technicians, including their coordinates, skills, current workload, and van inventory.
 
-\- \*\*PostgreSQL\*\*: Fetches the list of active technicians, including their coordinates, skills, current workload, and van inventory.
+- **Code**: Executes a custom JavaScript algorithm to score each technician based on proximity, parts availability, and workload, then selects the best match and calculates a dynamic price.
 
-\- \*\*Code\*\*: Executes a custom JavaScript algorithm to score each technician based on proximity, parts availability, and workload, then selects the best match and calculates a dynamic price.
+- **Switch**: Routes the workflow based on whether a suitable technician with available parts was found.
 
-\- \*\*Switch\*\*: Routes the workflow based on whether a suitable technician with available parts was found.
+- **Google Calendar**: Automatically reserves a service time slot in the assigned technician's calendar.
 
-\- \*\*Google Calendar\*\*: Automatically reserves a service time slot in the assigned technician's calendar.
+- **Twilio**: Sends a personalized SMS confirmation to the customer with technician details and estimated price.
 
-\- \*\*Twilio\*\*: Sends a personalized SMS confirmation to the customer with technician details and estimated price.
+- **Slack**: Acts as a fallback mechanism, alerting the dispatch manager if manual intervention is required (e.g., no matching technician or missing parts).
 
-\- \*\*Slack\*\*: Acts as a fallback mechanism, alerting the dispatch manager if manual intervention is required (e.g., no matching technician or missing parts).
 
+## Workflow Diagram
 
+![Workflow Diagram](./screenshots/workflow-diagram.png)
 
-\## Workflow Diagram
 
-!\[Workflow Diagram](./screenshots/workflow-diagram.png)
+## How It Works
 
+1. **Ingestion**: A POST request hits the Webhook with customer and issue data.
 
+2. **AI Triage**: OpenAI parses the issue, identifying the device, required parts, and urgency.
 
-\## How It Works
+3. **Data Retrieval**: PostgreSQL returns an array of all active technicians and their current state.
 
-1\. \*\*Ingestion\*\*: A POST request hits the Webhook with customer and issue data.
+4. **Advanced Scoring (Code Node)**:
 
-2\. \*\*AI Triage\*\*: OpenAI parses the issue, identifying the device, required parts, and urgency.
+   - Calculates the geographical distance between the customer and each technician using the Haversine formula.
 
-3\. \*\*Data Retrieval\*\*: PostgreSQL returns an array of all active technicians and their current state.
+   - Checks if the technician's `van_inventory` contains all `required_parts`.
 
-4\. \*\*Advanced Scoring (Code Node)\*\*: 
+   - Applies a weighted scoring model: 40% Proximity, 40% Parts Availability, 20% Inverse Workload.
 
-&#x20;  - Calculates the geographical distance between the customer and each technician using the Haversine formula.
+   - Selects the technician with the highest score.
 
-&#x20;  - Checks if the technician's `van\_inventory` contains all `required\_parts`.
+   - Calculates a dynamic price: Base Price (based on urgency) + Travel Fee (distance-based) + Parts Fee.
 
-&#x20;  - Applies a weighted scoring model: 40% Proximity, 40% Parts Availability, 20% Inverse Workload.
+5. **Decision Routing**: The Switch node checks if a valid technician was assigned and parts are available.
 
-&#x20;  - Selects the technician with the highest score.
+6. **Success Path**: Google Calendar creates an event, and Twilio sends an SMS to the customer.
 
-&#x20;  - Calculates a dynamic price: Base Price (based on urgency) + Travel Fee (distance-based) + Parts Fee.
+7. **Fallback Path**: If no match is found, Slack notifies the dispatch manager for manual resolution or parts ordering.
 
-5\. \*\*Decision Routing\*\*: The Switch node checks if a valid technician was assigned and parts are available.
 
-6\. \*\*Success Path\*\*: Google Calendar creates an event, and Twilio sends an SMS to the customer.
+## How to Use
 
-7\. \*\*Fallback Path\*\*: If no match is found, Slack notifies the dispatch manager for manual resolution or parts ordering.
+1. Import the `workflow.json` file into your n8n instance.
 
+2. Set up the PostgreSQL database with the `technicians` table and sample data.
 
+3. Configure all required credentials (OpenAI, PostgreSQL, Google Calendar, Twilio, Slack).
 
-\## How to Use
+4. Test the workflow by sending a mock POST request to the Webhook URL.
 
-1\. Import the `workflow.json` file into your n8n instance.
+5. Monitor the execution to verify the scoring logic and routing.
 
-2\. Set up the PostgreSQL database with the `technicians` table and sample data.
+6. Activate the workflow for production use.
 
-3\. Configure all required credentials (OpenAI, PostgreSQL, Google Calendar, Twilio, Slack).
 
-4\. Test the workflow by sending a mock POST request to the Webhook URL.
+## Prerequisites
 
-5\. Monitor the execution to verify the scoring logic and routing.
+- A running instance of n8n (Cloud or Self-hosted).
 
-6\. Activate the workflow for production use.
+- An active OpenAI API key.
 
+- A PostgreSQL database.
 
+- A Google Cloud project with Google Calendar API enabled.
 
-\## Prerequisites
+- A Twilio account with an active phone number.
 
-\- A running instance of n8n (Cloud or Self-hosted).
+- A Slack workspace with a dedicated dispatch channel.
 
-\- An active OpenAI API key.
 
-\- A PostgreSQL database.
+## Setup Steps
 
-\- A Google Cloud project with Google Calendar API enabled.
+1. **PostgreSQL Setup**: Create the `technicians` table and insert sample data:
 
-\- A Twilio account with an active phone number.
+   ```sql
 
-\- A Slack workspace with a dedicated dispatch channel.
+   CREATE TABLE technicians (
 
+       id VARCHAR(50) PRIMARY KEY,
 
+       name VARCHAR(100),
 
-\## Setup Steps
+       lat DECIMAL(9,6),
 
-1\. \*\*PostgreSQL Setup\*\*: Create the `technicians` table and insert sample data:
+       lon DECIMAL(9,6),
 
-&#x20;  ```sql
+       skills TEXT[], -- e.g., {'AC', 'Heater'}
 
-&#x20;  CREATE TABLE technicians (
+       current_load INT,
 
-&#x20;      id VARCHAR(50) PRIMARY KEY,
+       van_inventory TEXT[], -- e.g., {'freon', 'compressor'}
 
-&#x20;      name VARCHAR(100),
+       status VARCHAR(20)
 
-&#x20;      lat DECIMAL(9,6),
+   );
 
-&#x20;      lon DECIMAL(9,6),
+   INSERT INTO technicians (id, name, lat, lon, skills, current_load, van_inventory, status)
 
-&#x20;      skills TEXT\[], -- e.g., {'AC', 'Heater'}
-
-&#x20;      current\_load INT,
-
-&#x20;      van\_inventory TEXT\[], -- e.g., {'freon', 'compressor'}
-
-&#x20;      status VARCHAR(20)
-
-&#x20;  );
-
-&#x20;  INSERT INTO technicians (id, name, lat, lon, skills, current\_load, van\_inventory, status) 
-
-&#x20;  VALUES ('T1', 'Ali Rezaei', 35.70, 51.40, '{"AC", "Heater"}', 2, '{"freon", "thermostat"}', 'active');
+   VALUES ('TECH-001', 'Sample Technician', 35.70, 51.40, '{"AC", "Heater"}', 2, '{"freon", "thermostat"}', 'active');
 
 
 Credentials: Add your OpenAI, PostgreSQL, Google Calendar (OAuth2), Twilio, and Slack credentials in n8n.
@@ -151,7 +146,7 @@ Slack API: Bot User OAuth Token with chat:write permissions.
 
 Use Cases
 
-HVAC \& Plumbing Companies: Automating dispatch to reduce response times and fuel costs.
+HVAC & Plumbing Companies: Automating dispatch to reduce response times and fuel costs.
 
 Appliance Repair Services: Ensuring technicians arrive with the correct parts on the first visit (First-Time Fix Rate).
 
@@ -179,13 +174,12 @@ Troubleshooting
 
 OpenAI JSON Parse Error: Ensure the system prompt strictly enforces JSON output. Check the responseFormat setting in the OpenAI node.
 
-Code Node Returns Null: Verify that the customer\_lat and customer\_lon are provided as numbers in the Webhook payload.
+Code Node Returns Null: Verify that the customer_lat and customer_lon are provided as numbers in the Webhook payload.
 
 Google Calendar Fails: Ensure the Google service account or OAuth user has "Make changes to events" permission on the target calendar.
 
-Twilio SMS Fails: Check that the destination phone number is in E.164 format (e.g., +989123456789) and that your Twilio account has sufficient balance.
+Twilio SMS Fails: Check that the destination phone number is in E.164 format (e.g., +15550100000) and that your Twilio account has sufficient balance.
 
 License
 
 This project is licensed under the MIT License.
-

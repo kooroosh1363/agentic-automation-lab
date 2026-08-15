@@ -1,272 +1,233 @@
-\# Smart Building Management with IoT
+# Smart Building Management with IoT
+
+![Level](https://img.shields.io/badge/Level-Intermediate-0D6EFD)
 
 
-
-\##  Description
-
+##  Description
 
 
 A comprehensive IoT and smart building automation system that processes real-time sensor data (temperature, humidity, CO2, motion, energy), detects anomalies using AI, automatically adjusts HVAC and lighting systems, triggers emergency alerts, and generates daily analytical reports for facility managers.
 
 
+## 🔧 Nodes Used
 
-\## 🔧 Nodes Used
 
+- **Webhook** - Receives real-time data from IoT sensors
 
+- **Code Node** - Enriches sensor data with timestamps and building zones
 
-\- \*\*Webhook\*\* - Receives real-time data from IoT sensors
+- **OpenAI GPT-4** - AI anomaly detection and daily report generation
 
-\- \*\*Code Node\*\* - Enriches sensor data with timestamps and building zones
+- **Switch Node** - Routes actions based on risk level (Emergency, High Risk, Normal)
 
-\- \*\*OpenAI GPT-4\*\* - AI anomaly detection and daily report generation
+- **Telegram** - Sends instant emergency alerts to facility managers
 
-\- \*\*Switch Node\*\* - Routes actions based on risk level (Emergency, High Risk, Normal)
+- **HTTP Request** - Communicates with Building Management System (BMS) APIs to adjust HVAC/Lighting
 
-\- \*\*Telegram\*\* - Sends instant emergency alerts to facility managers
+- **Google Sheets** - Logs sensor data and incident reports
 
-\- \*\*HTTP Request\*\* - Communicates with Building Management System (BMS) APIs to adjust HVAC/Lighting
+- **Schedule Trigger** - Triggers daily analytical reports
 
-\- \*\*Google Sheets\*\* - Logs sensor data and incident reports
+- **Email Send** - Delivers daily summary reports
 
-\- \*\*Schedule Trigger\*\* - Triggers daily analytical reports
 
-\- \*\*Email Send\*\* - Delivers daily summary reports
+## 🔄 Workflow Diagram
 
 
+![Workflow Diagram](screenshots/workflow-diagram.png)
 
-\## 🔄 Workflow Diagram
 
+## ⚙️ How It Works
 
 
-!\[Workflow Diagram](screenshots/workflow-diagram.png)
+### Phase 1: Real-time Data Ingestion
 
+1. **Sensor Webhook**: Receives JSON payloads from IoT sensors containing environmental and operational data.
 
+2. **Data Enrichment**: The Code Node adds metadata like timestamps, building zones, and determines if it's after working hours.
 
-\## ⚙️ How It Works
 
+### Phase 2: AI Analysis & Risk Assessment
 
+1. **Anomaly Detection**: GPT-4 analyzes the enriched data to identify unusual patterns (e.g., sudden temperature spikes, high CO2, unauthorized motion).
 
-\### Phase 1: Real-time Data Ingestion
+2. **Risk Routing**: The Switch Node categorizes the event into three paths:
 
-1\. \*\*Sensor Webhook\*\*: Receives JSON payloads from IoT sensors containing environmental and operational data.
+   - **Emergency**: Critical issues (e.g., fire, gas leak) requiring immediate human intervention.
 
-2\. \*\*Data Enrichment\*\*: The Code Node adds metadata like timestamps, building zones, and determines if it's after working hours.
+   - **High Risk**: Significant anomalies requiring automated system adjustments.
 
+   - **Normal**: Routine data logging.
 
 
-\### Phase 2: AI Analysis \& Risk Assessment
+### Phase 3: Automated Response
 
-1\. \*\*Anomaly Detection\*\*: GPT-4 analyzes the enriched data to identify unusual patterns (e.g., sudden temperature spikes, high CO2, unauthorized motion).
+1. **Emergency Alert**: Sends an urgent Telegram message to the facility manager.
 
-2\. \*\*Risk Routing\*\*: The Switch Node categorizes the event into three paths:
+2. **System Adjustment**: Calls the Building Management API to automatically adjust HVAC and lighting based on AI recommendations.
 
-&#x20;  - \*\*Emergency\*\*: Critical issues (e.g., fire, gas leak) requiring immediate human intervention.
+3. **Database Logging**: All events and sensor readings are securely logged in Google Sheets.
 
-&#x20;  - \*\*High Risk\*\*: Significant anomalies requiring automated system adjustments.
 
-&#x20;  - \*\*Normal\*\*: Routine data logging.
+### Phase 4: Daily Reporting
 
+1. **Scheduled Trigger**: Runs every morning to fetch the previous day's logs.
 
+2. **AI Report Generation**: GPT-4 analyzes the day's data to calculate averages, identify energy waste, and generate actionable recommendations.
 
-\### Phase 3: Automated Response
+3. **Email Delivery**: A comprehensive daily report is emailed to the management team.
 
-1\. \*\*Emergency Alert\*\*: Sends an urgent Telegram message to the facility manager.
 
-2\. \*\*System Adjustment\*\*: Calls the Building Management API to automatically adjust HVAC and lighting based on AI recommendations.
+## 🚀 How to Use
 
-3\. \*\*Database Logging\*\*: All events and sensor readings are securely logged in Google Sheets.
 
+### Prerequisites
 
 
-\### Phase 4: Daily Reporting
+- n8n instance (self-hosted or cloud)
 
-1\. \*\*Scheduled Trigger\*\*: Runs every morning to fetch the previous day's logs.
+- OpenAI API key
 
-2\. \*\*AI Report Generation\*\*: GPT-4 analyzes the day's data to calculate averages, identify energy waste, and generate actionable recommendations.
+- Google Sheets account
 
-3\. \*\*Email Delivery\*\*: A comprehensive daily report is emailed to the management team.
+- Telegram Bot Token
 
+- Email account (SMTP)
 
+- Access to a Building Management System (BMS) API (or mock API for testing)
 
-\## 🚀 How to Use
 
+### Setup Steps
 
 
-\### Prerequisites
+1. **Import Workflow**
 
+   - Open n8n and import `workflow.json`.
 
 
-\- n8n instance (self-hosted or cloud)
+2. **Configure Webhook**
 
-\- OpenAI API key
+   - Copy the production URL for the `IoT Sensor Webhook`.
 
-\- Google Sheets account
+   - Use this URL in your IoT devices, MQTT bridge, or testing tools (like Postman) to send JSON payloads.
 
-\- Telegram Bot Token
 
-\- Email account (SMTP)
+3. **Configure OpenAI**
 
-\- Access to a Building Management System (BMS) API (or mock API for testing)
+   - Connect your OpenAI API credentials to both AI nodes.
 
 
+4. **Configure Google Sheets**
 
-\### Setup Steps
+   - Connect your Google Sheets OAuth2 account.
 
+   - Update `YOUR_GOOGLE_SHEET_ID`.
 
+   - Create a sheet named "SensorLogs" with columns: timestamp, sensor_id, zone, temperature, humidity, co2, energy_kwh, motion, risk_level, anomaly_type, hvac_action.
 
-1\. \*\*Import Workflow\*\*
 
-&#x20;  - Open n8n and import `workflow.json`.
+5. **Configure Telegram & Email**
 
+   - Connect your Telegram Bot API and update `YOUR_FACILITY_MANAGER_CHAT_ID`.
 
+   - Update `building-management@yourcompany.com` and `facility-manager@yourcompany.com` with your actual email addresses.
 
-2\. \*\*Configure Webhook\*\*
 
-&#x20;  - Copy the production URL for the `IoT Sensor Webhook`.
+6. **Configure BMS API**
 
-&#x20;  - Use this URL in your IoT devices, MQTT bridge, or testing tools (like Postman) to send JSON payloads.
+   - Update the `Adjust HVAC & Lighting` HTTP Request node with your actual Building Management API URL and `YOUR_BUILDING_API_KEY`.
 
 
+7. **Activate Workflow**
 
-3\. \*\*Configure OpenAI\*\*
+   - Toggle the workflow to "Active".
 
-&#x20;  - Connect your OpenAI API credentials to both AI nodes.
 
+## 🔐 Credentials Required
 
 
-4\. \*\*Configure Google Sheets\*\*
+- **OpenAI API**: OpenAI API key
 
-&#x20;  - Connect your Google Sheets OAuth2 account.
+- **Google Sheets OAuth2**: Google Sheets API access
 
-&#x20;  - Update `YOUR\_GOOGLE\_SHEET\_ID`.
+- **Telegram Bot API**: Telegram Bot Token
 
-&#x20;  - Create a sheet named "SensorLogs" with columns: timestamp, sensor\_id, zone, temperature, humidity, co2, energy\_kwh, motion, risk\_level, anomaly\_type, hvac\_action.
+- **SMTP Email**: Email sending credentials
 
+- **BMS API Key**: API key for your Building Management System
 
 
-5\. \*\*Configure Telegram \& Email\*\*
+##  Use Cases
 
-&#x20;  - Connect your Telegram Bot API and update `YOUR\_FACILITY\_MANAGER\_CHAT\_ID`.
 
-&#x20;  - Update `building-management@yourcompany.com` and `facility-manager@yourcompany.com` with your actual email addresses.
+- **Commercial Buildings**: Optimize energy usage and maintain comfortable environments.
 
+- **Data Centers**: Monitor server room temperatures and humidity in real-time.
 
+- **Smart Factories**: Track environmental conditions on the production floor.
 
-6\. \*\*Configure BMS API\*\*
+- **Corporate Offices**: Automate lighting and HVAC based on room occupancy.
 
-&#x20;  - Update the `Adjust HVAC \& Lighting` HTTP Request node with your actual Building Management API URL and `YOUR\_BUILDING\_API\_KEY`.
 
+## 🔧 Customization Ideas
 
 
-7\. \*\*Activate Workflow\*\*
+- **MQTT Integration**: Use an MQTT trigger node instead of Webhooks for direct IoT device communication.
 
-&#x20;  - Toggle the workflow to "Active".
+- **Predictive Maintenance**: Train an AI model to predict equipment failures based on historical energy and vibration data.
 
+- **Digital Twin Dashboard**: Connect the Google Sheets data to a tool like Grafana or PowerBI for a real-time 3D building dashboard.
 
+- **Occupancy Tracking**: Integrate with Wi-Fi or Bluetooth beacons to get more accurate room occupancy data.
 
-\## 🔐 Credentials Required
 
+## 📝 Notes
 
 
-\- \*\*OpenAI API\*\*: OpenAI API key
+- **Webhook Payload**: Ensure your IoT devices send a valid JSON payload containing at least `temperature`, `humidity`, `co2`, `motion`, and `energy_kwh`.
 
-\- \*\*Google Sheets OAuth2\*\*: Google Sheets API access
+- **API Rate Limits**: If you have thousands of sensors, consider batching the data before sending it to the AI node to avoid rate limits and high API costs.
 
-\- \*\*Telegram Bot API\*\*: Telegram Bot Token
+- **Emergency Testing**: Test the emergency routing carefully to ensure critical alerts are never blocked or delayed.
 
-\- \*\*SMTP Email\*\*: Email sending credentials
 
-\- \*\*BMS API Key\*\*: API key for your Building Management System
+## 🐛 Troubleshooting
 
 
+**Issue**: Webhook not receiving data
 
-\##  Use Cases
+- **Solution**: Ensure the workflow is "Active" and you are using the Production URL, not the Test URL.
 
 
+**Issue**: AI node returning errors
 
-\- \*\*Commercial Buildings\*\*: Optimize energy usage and maintain comfortable environments.
+- **Solution**: Check if the sensor data format matches the prompt expectations. Ensure your OpenAI API key has sufficient credits.
 
-\- \*\*Data Centers\*\*: Monitor server room temperatures and humidity in real-time.
 
-\- \*\*Smart Factories\*\*: Track environmental conditions on the production floor.
+**Issue**: HVAC API call failing (401/403)
 
-\- \*\*Corporate Offices\*\*: Automate lighting and HVAC based on room occupancy.
+- **Solution**: Verify your BMS API token and ensure it has the necessary permissions to adjust settings.
 
 
-
-\## 🔧 Customization Ideas
-
-
-
-\- \*\*MQTT Integration\*\*: Use an MQTT trigger node instead of Webhooks for direct IoT device communication.
-
-\- \*\*Predictive Maintenance\*\*: Train an AI model to predict equipment failures based on historical energy and vibration data.
-
-\- \*\*Digital Twin Dashboard\*\*: Connect the Google Sheets data to a tool like Grafana or PowerBI for a real-time 3D building dashboard.
-
-\- \*\*Occupancy Tracking\*\*: Integrate with Wi-Fi or Bluetooth beacons to get more accurate room occupancy data.
-
-
-
-\## 📝 Notes
-
-
-
-\- \*\*Webhook Payload\*\*: Ensure your IoT devices send a valid JSON payload containing at least `temperature`, `humidity`, `co2`, `motion`, and `energy\_kwh`.
-
-\- \*\*API Rate Limits\*\*: If you have thousands of sensors, consider batching the data before sending it to the AI node to avoid rate limits and high API costs.
-
-\- \*\*Emergency Testing\*\*: Test the emergency routing carefully to ensure critical alerts are never blocked or delayed.
-
-
-
-\## 🐛 Troubleshooting
-
-
-
-\*\*Issue\*\*: Webhook not receiving data
-
-\- \*\*Solution\*\*: Ensure the workflow is "Active" and you are using the Production URL, not the Test URL.
-
-
-
-\*\*Issue\*\*: AI node returning errors
-
-\- \*\*Solution\*\*: Check if the sensor data format matches the prompt expectations. Ensure your OpenAI API key has sufficient credits.
-
-
-
-\*\*Issue\*\*: HVAC API call failing (401/403)
-
-\- \*\*Solution\*\*: Verify your BMS API token and ensure it has the necessary permissions to adjust settings.
-
-
-
-\## 📄 License
-
+## 📄 License
 
 
 This workflow is provided as-is for educational and commercial use.
 
 
-
-\## 🤝 Contributing
-
+## 🤝 Contributing
 
 
 Feel free to fork, modify, and improve this workflow for your specific smart building needs.
 
 
-
 \---
 
 
+**Created for**: agentic-automation-lab
 
-\*\*Created for\*\*: n8n-workflows-practice  
+**Exercise**: 16 - Smart Building Management with IoT
 
-\*\*Exercise\*\*: 16 - Smart Building Management with IoT  
+**Author**: Koroosh
 
-\*\*Author\*\*: Koroosh  
-
-\*\*Date\*\*: 2026
-
+**Date**: 2026

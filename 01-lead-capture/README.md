@@ -1,62 +1,57 @@
-\# 🎯 Exercise 1: Lead Capture System
+# 🎯 Exercise 1: Lead Capture System
+
+![Level](https://img.shields.io/badge/Level-Foundation-6C757D)
 
 
-
-\## 📌 Description
+## 📌 Description
 
 This workflow receives customer information via Webhook, stores it in Google Sheets, and sends notifications to Telegram.
 
 
+## 🔧 Nodes Used
 
-\## 🔧 Nodes Used
+- Webhook (Trigger)
 
-\- Webhook (Trigger)
+- Google Sheets
 
-\- Google Sheets
+- Telegram
 
-\- Telegram
-
-\- Respond to Webhook
-
+- Respond to Webhook
 
 
-\## 📸 Workflow Diagram
+## 📸 Workflow Diagram
 
 
-
-!\[Workflow Diagram](screenshots/workflow-diagram.png)
-
+![Workflow Diagram](screenshots/workflow-diagram.png)
 
 
-\##  How to Use
+##  How to Use
 
-1\. Import `workflow.json` file in n8n
+1. Import `workflow.json` file in n8n
 
-2\. Configure Google Sheets and Telegram credentials
+2. Configure Google Sheets and Telegram credentials
 
-3\. Activate the workflow
+3. Activate the workflow
 
-4\. Test with POST request to the Webhook URL
+4. Test with POST request to the Webhook URL
 
 
-
-\## 📋 Example Request
+## 📋 Example Request
 
 ```bash
 
 curl -X POST https://your-n8n.com/webhook/lead-capture \\
 
-&#x20; -H "Content-Type: application/json" \\
+  -H "Content-Type: application/json" \\
 
-&#x20; -d '{
+  -d '{
 
-&#x20;   "name": "John Doe",
+    "name": "John Doe",
 
-&#x20;   "email": "john@example.com",
+    "email": "john@example.com",
 
-&#x20;   "phone": "1234567890",
+    "phone": "1234567890",
 
-&#x20;   "message": "Hello, I need help!"
+    "message": "Hello, I need help!"
 
-&#x20; }'
-
+  }'

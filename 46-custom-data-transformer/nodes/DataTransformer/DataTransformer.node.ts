@@ -1,5 +1,6 @@
 import {
 	IExecuteFunctions,
+	IDataObject,
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
@@ -8,12 +9,12 @@ import {
 
 // ===== Recursive Algorithms =====
 
-function flattenObject(obj: { [key: string]: unknown }, prefix = '', separator = '.'): { [key: string]: unknown } {
-	const result: { [key: string]: unknown } = {};
+function flattenObject(obj: IDataObject, prefix = '', separator = '.'): IDataObject {
+	const result: IDataObject = {};
 	for (const [key, value] of Object.entries(obj)) {
 		const newKey = prefix ? `${prefix}${separator}${key}` : key;
 		if (value && typeof value === 'object' && !Array.isArray(value)) {
-			Object.assign(result, flattenObject(value as { [key: string]: unknown }, newKey, separator));
+			Object.assign(result, flattenObject(value as IDataObject, newKey, separator));
 		} else {
 			result[newKey] = value;
 		}
@@ -21,15 +22,15 @@ function flattenObject(obj: { [key: string]: unknown }, prefix = '', separator =
 	return result;
 }
 
-function deepMerge(target: { [key: string]: unknown }, source: { [key: string]: unknown }): { [key: string]: unknown } {
-	const output: { [key: string]: unknown } = { ...target };
+function deepMerge(target: IDataObject, source: IDataObject): IDataObject {
+	const output: IDataObject = { ...target };
 	for (const [key, value] of Object.entries(source)) {
 		const existing = output[key];
 		if (
 			value && typeof value === 'object' && !Array.isArray(value) &&
 			existing && typeof existing === 'object' && !Array.isArray(existing)
 		) {
-			output[key] = deepMerge(existing as { [key: string]: unknown }, value as { [key: string]: unknown });
+			output[key] = deepMerge(existing as IDataObject, value as IDataObject);
 		} else {
 			output[key] = value;
 		}
@@ -114,14 +115,14 @@ export class DataTransformer implements INodeType {
 		if (operation === 'flatten') {
 			const separator = this.getNodeParameter('separator', 0, '.') as string;
 			for (const item of items) {
-				returnData.push({ json: flattenObject(item.json as { [key: string]: unknown }, '', separator) });
+				returnData.push({ json: flattenObject(item.json, '', separator) });
 			}
 		}
 
 		if (operation === 'deepMerge') {
-			let merged: { [key: string]: unknown } = {};
+			let merged: IDataObject = {};
 			for (const item of items) {
-				merged = deepMerge(merged, item.json as { [key: string]: unknown });
+				merged = deepMerge(merged, item.json);
 			}
 			returnData.push({ json: merged });
 		}
@@ -168,8 +169,8 @@ export class DataTransformer implements INodeType {
 			const fieldList = fieldsRaw.split(',').map((f) => f.trim()).filter((f) => f.length > 0);
 
 			for (const item of items) {
-				const source = item.json as { [key: string]: unknown };
-				const output: { [key: string]: unknown } = {};
+			const source = item.json;
+			const output: IDataObject = {};
 				for (const [key, value] of Object.entries(source)) {
 					const isInList = fieldList.includes(key);
 					if ((mode === 'include' && isInList) || (mode === 'exclude' && !isInList)) {

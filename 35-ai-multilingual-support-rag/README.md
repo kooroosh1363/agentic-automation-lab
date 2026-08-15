@@ -1,11 +1,13 @@
-🌐 35 - AI Multilingual Customer Support with RAG & Vector Database
+# 🌐 35 - AI Multilingual Customer Support with RAG & Vector Database
+
+![Level](https://img.shields.io/badge/Level-Advanced-6F42C1)
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![n8n Version](https://img.shields.io/badge/n8n-v1.0+-blue)
 ![AI Models](https://img.shields.io/badge/AI-GPT--4%20%7C%20RAG-orange)
 
 ## 📖 Overview
-An enterprise-grade, AI-powered customer support automation engine utilizing Retrieval-Augmented Generation (RAG). This workflow intercepts incoming support tickets, automatically detects the language and sentiment, retrieves relevant context from a Vector Database (Pinecone), and generates a highly accurate, multilingual response. It includes a smart "Human-in-the-Loop" escalation system for frustrated customers and seamlessly syncs with HubSpot CRM.
+An enterprise-oriented, AI-powered customer support automation engine utilizing Retrieval-Augmented Generation (RAG). This workflow intercepts incoming support tickets, automatically detects the language and sentiment, retrieves relevant context from a Vector Database (Pinecone), and generates a highly accurate, multilingual response. It includes a smart "Human-in-the-Loop" escalation system for frustrated customers and seamlessly syncs with HubSpot CRM.
 
 ## ✨ Key Features
 - **Intelligent Triage:** Automatically detects the customer's language and sentiment (Positive, Neutral, Negative, Angry) using GPT-4.
@@ -76,7 +78,7 @@ HUBSPOT_SUPPORT_OWNER_ID=12345678 # Your support team owner ID in HubSpot
 - **SMTP Account:** For sending the final reply to the customer.
 
 ### 3. Vector Database Preparation (Pre-requisite)
-Before this workflow can retrieve answers, your Knowledge Base (PDFs, Notion docs, FAQs) must be chunked, embedded (using OpenAI `text-embedding-3-small`), and upserted into your Pinecone index. 
+Before this workflow can retrieve answers, your Knowledge Base (PDFs, Notion docs, FAQs) must be chunked, embedded (using OpenAI `text-embedding-3-small`), and upserted into your Pinecone index.
 
 ## 🚀 Installation & Usage
 

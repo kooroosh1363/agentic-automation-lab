@@ -1,11 +1,13 @@
-📄 38 - AI Intelligent Document Processing (IDP) Engine
+# 📄 38 - AI Intelligent Document Processing (IDP) Engine
+
+![Level](https://img.shields.io/badge/Level-Advanced-6F42C1)
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![n8n Version](https://img.shields.io/badge/n8n-v1.0+-blue)
 ![AI Models](https://img.shields.io/badge/AI-GPT--4o%20Vision-orange)
 
 ## 📖 Overview
-An enterprise-grade Intelligent Document Processing (IDP) engine that automates the extraction, validation, and routing of data from unstructured documents (PDFs, Invoices, Contracts, Resumes). By leveraging GPT-4o's advanced Vision capabilities, this workflow reads binary files directly, extracts structured JSON data, performs automated validation, and intelligently routes the results—saving approved documents to Airtable and instantly alerting managers via Slack if critical "Red Flags" are detected.
+An enterprise-oriented Intelligent Document Processing (IDP) engine that automates the extraction, validation, and routing of data from unstructured documents (PDFs, Invoices, Contracts, Resumes). By leveraging GPT-4o's advanced Vision capabilities, this workflow reads binary files directly, extracts structured JSON data, performs automated validation, and intelligently routes the results—saving approved documents to Airtable and instantly alerting managers via Slack if critical "Red Flags" are detected.
 
 ## ✨ Key Features
 - **Native Binary Data Processing:** Seamlessly handles binary file uploads (PDFs, Images) via Webhook, converting them to Base64 for AI processing.

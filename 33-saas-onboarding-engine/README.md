@@ -1,11 +1,13 @@
- 033 - Multi-Tenant SaaS Onboarding Engine & AI Orchestrator
+# 33 - Multi-Tenant SaaS Onboarding Engine & AI Orchestrator
+
+![Level](https://img.shields.io/badge/Level-Advanced-6F42C1)
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![n8n Version](https://img.shields.io/badge/n8n-v1.0+-blue)
 ![AI Model](https://img.shields.io/badge/AI-GPT--4-orange)
 
 ## 📖 Overview
-An enterprise-grade, automated onboarding engine for B2B SaaS companies. This workflow triggers via Webhook upon a new enterprise signup, provisions the tenant in a database, generates a highly personalized 30-day onboarding plan using GPT-4, provisions a private Slack channel and Notion workspace, and sends a beautifully formatted welcome email. It includes robust error handling to ensure no client falls through the cracks.
+An enterprise-oriented, automated onboarding engine for B2B SaaS companies. This workflow triggers via Webhook upon a new enterprise signup, provisions the tenant in a database, generates a highly personalized 30-day onboarding plan using GPT-4, provisions a private Slack channel and Notion workspace, and sends a beautifully formatted welcome email. It includes robust error handling to ensure no client falls through the cracks.
 
 ##  Key Features
 - **Instant Provisioning:** Automatically creates tenant records in PostgreSQL the moment a webhook is received.

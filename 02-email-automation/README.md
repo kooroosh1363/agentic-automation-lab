@@ -1,66 +1,61 @@
-\# Exercise 2: Email Automation - Daily Order Processing
+# Exercise 2: Email Automation - Daily Order Processing
+
+![Level](https://img.shields.io/badge/Level-Foundation-6C757D)
 
 
-
-\## Description
+## Description
 
 This workflow automatically processes pending orders from Google Sheets, sends confirmation emails to customers, updates order status, and sends a daily report to Telegram.
 
 
+## Nodes Used
 
-\## Nodes Used
+- Schedule Trigger (runs every 24 hours)
 
-\- Schedule Trigger (runs every 24 hours)
+- Google Sheets (Read & Update)
 
-\- Google Sheets (Read \& Update)
+- Filter (Pending orders only)
 
-\- Filter (Pending orders only)
+- Send Email
 
-\- Send Email
-
-\- Telegram (Report notification)
-
+- Telegram (Report notification)
 
 
-\## Workflow Diagram
+## Workflow Diagram
 
 
-
-!\[Workflow Diagram](screenshots/workflow-diagram.png)
-
+![Workflow Diagram](screenshots/workflow-diagram.png)
 
 
-\## How It Works
+## How It Works
 
-1\. Schedule Trigger fires every 24 hours
+1. Schedule Trigger fires every 24 hours
 
-2\. Reads all orders from Google Sheets
+2. Reads all orders from Google Sheets
 
-3\. Filters only "Pending" orders
+3. Filters only "Pending" orders
 
-4\. Sends confirmation email to each customer
+4. Sends confirmation email to each customer
 
-5\. Updates order status to "Sent"
+5. Updates order status to "Sent"
 
-6\. Sends a summary report to Telegram
+6. Sends a summary report to Telegram
 
 
-
-\## Google Sheet Structure
+## Google Sheet Structure
 
 Create a sheet named "Orders" with these columns:
-
 
 
 | Column | Description |
 
 |--------|-------------|
 
-| order\_id | Unique order number |
+| order_id | Unique order number |
 
-| customer\_name | Customer full name |
+| customer_name | Customer full name |
 
-| customer\_email | Customer email address |
+| customer_email | Customer email address |
 
 | product | Product name |
 
@@ -71,26 +66,23 @@ Create a sheet named "Orders" with these columns:
 | status | Pending / Sent |
 
 
+## How to Use
 
-\## How to Use
+1. Import `workflow.json` in n8n
 
-1\. Import `workflow.json` in n8n
+2. Configure Google Sheets and Email credentials
 
-2\. Configure Google Sheets and Email credentials
+3. Configure Telegram credential
 
-3\. Configure Telegram credential
+4. Set up your Google Sheet with the required columns
 
-4\. Set up your Google Sheet with the required columns
-
-5\. Activate the workflow
-
+5. Activate the workflow
 
 
-\## Credentials Required
+## Credentials Required
 
-\- Google Sheets API
+- Google Sheets API
 
-\- SMTP (for sending emails)
+- SMTP (for sending emails)
 
-\- Telegram Bot API
-
+- Telegram Bot API

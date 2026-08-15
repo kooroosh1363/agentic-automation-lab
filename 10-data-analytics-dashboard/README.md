@@ -1,106 +1,100 @@
-\# Exercise 10: Data Analytics Dashboard with AI Insights
+# Exercise 10: Data Analytics Dashboard with AI Insights
+
+![Level](https://img.shields.io/badge/Level-Foundation-6C757D)
 
 
-
-\## Description
+## Description
 
 An advanced business intelligence system that collects data from multiple sources (Sales, Marketing, External APIs), calculates KPIs automatically, uses OpenAI to analyze trends and detect anomalies, and distributes reports through multiple channels.
 
 
+## Nodes Used
 
-\## Nodes Used
+- Schedule Trigger (Weekly)
 
-\- Schedule Trigger (Weekly)
+- Google Sheets (Fetch Sales & Marketing Data)
 
-\- Google Sheets (Fetch Sales \& Marketing Data)
+- HTTP Request (External Metrics API)
 
-\- HTTP Request (External Metrics API)
+- Code (KPI Calculation & Data Processing)
 
-\- Code (KPI Calculation \& Data Processing)
+- OpenAI (AI Data Analysis)
 
-\- OpenAI (AI Data Analysis)
+- IF (Risk Level Check)
 
-\- IF (Risk Level Check)
+- Telegram (High Risk Alert)
 
-\- Telegram (High Risk Alert)
+- Slack (Weekly Report)
 
-\- Slack (Weekly Report)
+- Send Email (Management Report)
 
-\- Send Email (Management Report)
-
-\- Google Sheets (Save to Dashboard)
-
+- Google Sheets (Save to Dashboard)
 
 
-\## Workflow Diagram
+## Workflow Diagram
 
 
-
-!\[Workflow Diagram](screenshots/workflow-diagram.png)
-
+![Workflow Diagram](screenshots/workflow-diagram.png)
 
 
-\## How It Works
+## How It Works
 
-1\. Schedule Trigger runs the workflow every Monday at 8 AM
+1. Schedule Trigger runs the workflow every Monday at 8 AM
 
-2\. Three parallel nodes fetch data from:
+2. Three parallel nodes fetch data from:
 
-&#x20;  - Sales Data (Google Sheets)
+   - Sales Data (Google Sheets)
 
-&#x20;  - Marketing Data (Google Sheets)
+   - Marketing Data (Google Sheets)
 
-&#x20;  - External Metrics (API)
+   - External Metrics (API)
 
-3\. Code node calculates KPIs:
+3. Code node calculates KPIs:
 
-&#x20;  - Total Revenue, Total Orders, Avg Order Value
+   - Total Revenue, Total Orders, Avg Order Value
 
-&#x20;  - Conversion Rate, CAC, ROI
+   - Conversion Rate, CAC, ROI
 
-4\. OpenAI analyzes the data and returns:
+4. OpenAI analyzes the data and returns:
 
-&#x20;  - Trends, Anomalies, Insights, Recommendations
+   - Trends, Anomalies, Insights, Recommendations
 
-&#x20;  - Next week forecast and risk level
+   - Next week forecast and risk level
 
-5\. Based on risk level:
+5. Based on risk level:
 
-&#x20;  - High Risk: Send urgent Telegram alert to management
+   - High Risk: Send urgent Telegram alert to management
 
-&#x20;  - Normal: Send weekly report to Slack channel
+   - Normal: Send weekly report to Slack channel
 
-6\. Detailed email report is sent to management team
+6. Detailed email report is sent to management team
 
-7\. All metrics and AI insights are saved to Analytics Dashboard (Google Sheets)
-
-
-
-\## How to Use
-
-1\. Import `workflow.json` file in n8n
-
-2\. Configure OpenAI, Telegram, Slack, Email, and Google Sheets credentials
-
-3\. Create Google Sheets named "SalesData", "MarketingData", and "AnalyticsDashboard"
-
-4\. Update the external API URL with your actual analytics endpoint
-
-5\. Activate the workflow
+7. All metrics and AI insights are saved to Analytics Dashboard (Google Sheets)
 
 
+## How to Use
 
-\## Credentials Required
+1. Import `workflow.json` file in n8n
 
-\- OpenAI API
+2. Configure OpenAI, Telegram, Slack, Email, and Google Sheets credentials
 
-\- Telegram Bot API
+3. Create Google Sheets named "SalesData", "MarketingData", and "AnalyticsDashboard"
 
-\- Slack API
+4. Update the external API URL with your actual analytics endpoint
 
-\- SMTP (for sending emails)
+5. Activate the workflow
 
-\- Google Sheets API
 
-\- External Analytics API (optional)
+## Credentials Required
 
+- OpenAI API
+
+- Telegram Bot API
+
+- Slack API
+
+- SMTP (for sending emails)
+
+- Google Sheets API
+
+- External Analytics API (optional)

@@ -1,4 +1,6 @@
-39 - AI Meeting Intelligence & Action Item Tracker
+# 39 - AI Meeting Intelligence & Action Item Tracker
+
+![Level](https://img.shields.io/badge/Level-Advanced-6F42C1)
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![n8n Version](https://img.shields.io/badge/n8n-v1.0+-blue)

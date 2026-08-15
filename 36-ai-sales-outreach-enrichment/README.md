@@ -1,4 +1,6 @@
- 36 - AI Personalized Sales Outreach & Data Enrichment Engine
+# 36 - AI Personalized Sales Outreach & Data Enrichment Engine
+
+![Level](https://img.shields.io/badge/Level-Advanced-6F42C1)
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![n8n Version](https://img.shields.io/badge/n8n-v1.0+-blue)
@@ -94,11 +96,11 @@ For the CRM integration to work perfectly, create the following custom propertie
 ```json
 {
   "lead_id": "LEAD-8821",
-  "first_name": "Sarah",
-  "last_name": "Jenkins",
-  "email": "sarah.j@techstartup.com",
-  "company": "TechStartup Inc",
-  "domain": "techstartup.com",
+  "first_name": "Sample",
+  "last_name": "Lead",
+  "email": "sample.lead@example.com",
+  "company": "Example Company",
+  "domain": "example.com",
   "title": "VP of Engineering"
 }
 ```

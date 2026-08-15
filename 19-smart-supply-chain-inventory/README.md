@@ -1,250 +1,212 @@
-\# Smart Supply Chain \& Inventory Management
+# Smart Supply Chain & Inventory Management
+
+![Level](https://img.shields.io/badge/Level-Intermediate-0D6EFD)
 
 
-
-\##  Description
-
+##  Description
 
 
 An intelligent supply chain and inventory automation system that prevents stockouts and overstocking. It uses AI to forecast weekly demand based on historical data and seasonality, dynamically calculates reorder points, automatically generates Purchase Orders (POs), and routes them for approval based on financial thresholds.
 
 
+##  Nodes Used
 
-\##  Nodes Used
 
+- **Schedule Trigger** - Runs daily inventory checks
 
+- **Google Sheets** - Acts as the database for Inventory and Purchase Orders Log
 
-\- \*\*Schedule Trigger\*\* - Runs daily inventory checks
+- **OpenAI GPT-4** - AI demand forecasting and supplier risk analysis
 
-\- \*\*Google Sheets\*\* - Acts as the database for Inventory and Purchase Orders Log
+- **Code Node** - Calculates Reorder Points, Safety Stock, and generates PO drafts
 
-\- \*\*OpenAI GPT-4\*\* - AI demand forecasting and supplier risk analysis
+- **Switch Node** - Routes POs based on stock status and financial thresholds
 
-\- \*\*Code Node\*\* - Calculates Reorder Points, Safety Stock, and generates PO drafts
+- **Email Send** - Automatically sends approved POs to suppliers
 
-\- \*\*Switch Node\*\* - Routes POs based on stock status and financial thresholds
+- **Slack** - Alerts procurement managers for high-value PO approvals
 
-\- \*\*Email Send\*\* - Automatically sends approved POs to suppliers
 
-\- \*\*Slack\*\* - Alerts procurement managers for high-value PO approvals
+## 🔄 Workflow Diagram
 
 
+![Workflow Diagram](screenshots/workflow-diagram.png)
 
-\## 🔄 Workflow Diagram
 
+## ⚙️ How It Works
 
 
-!\[Workflow Diagram](screenshots/workflow-diagram.png)
+### Phase 1: Daily Inventory Check & AI Forecasting
 
+1. **Scheduled Trigger**: Runs every morning to fetch current inventory levels from the "Inventory" Google Sheet.
 
+2. **AI Forecasting**: GPT-4 analyzes historical sales, seasonality, and lead times to predict the next 7 days' demand, recommend safety stock, and calculate the exact Reorder Point.
 
-\## ⚙️ How It Works
 
+### Phase 2: Reorder Calculation & PO Generation
 
+1. **Code Node**: Compares current stock against the AI-calculated Reorder Point.
 
-\### Phase 1: Daily Inventory Check \& AI Forecasting
+2. **PO Draft**: If stock is low, it calculates the optimal order quantity and estimated cost, generating a unique PO Number.
 
-1\. \*\*Scheduled Trigger\*\*: Runs every morning to fetch current inventory levels from the "Inventory" Google Sheet.
 
-2\. \*\*AI Forecasting\*\*: GPT-4 analyzes historical sales, seasonality, and lead times to predict the next 7 days' demand, recommend safety stock, and calculate the exact Reorder Point.
+### Phase 3: Smart Routing (Threshold-Based Approval)
 
+1. **Switch Node**: Evaluates the generated PO.
 
+   - **Sufficient Stock**: If no reorder is needed, the process ends.
 
-\### Phase 2: Reorder Calculation \& PO Generation
+   - **Auto-Approve**: If the estimated cost is ≤ $5,000, the PO is automatically emailed to the supplier.
 
-1\. \*\*Code Node\*\*: Compares current stock against the AI-calculated Reorder Point.
+   - **Manager Approval**: If the cost is > $5,000, a Slack alert is sent to the procurement manager for manual review.
 
-2\. \*\*PO Draft\*\*: If stock is low, it calculates the optimal order quantity and estimated cost, generating a unique PO Number.
 
+### Phase 4: Logging
 
+1. **Database Update**: All generated POs (whether auto-approved, sent to manager, or skipped) are logged in the "PurchaseOrdersLog" sheet for audit and tracking.
 
-\### Phase 3: Smart Routing (Threshold-Based Approval)
 
-1\. \*\*Switch Node\*\*: Evaluates the generated PO.
+## 🚀 How to Use
 
-&#x20;  - \*\*Sufficient Stock\*\*: If no reorder is needed, the process ends.
 
-&#x20;  - \*\*Auto-Approve\*\*: If the estimated cost is ≤ $5,000, the PO is automatically emailed to the supplier.
+### Prerequisites
 
-&#x20;  - \*\*Manager Approval\*\*: If the cost is > $5,000, a Slack alert is sent to the procurement manager for manual review.
 
+- n8n instance (self-hosted or cloud)
 
+- OpenAI API key
 
-\### Phase 4: Logging
+- Google Sheets account
 
-1\. \*\*Database Update\*\*: All generated POs (whether auto-approved, sent to manager, or skipped) are logged in the "PurchaseOrdersLog" sheet for audit and tracking.
+- Email account (SMTP)
 
+- Slack workspace
 
 
-\## 🚀 How to Use
+### Setup Steps
 
 
+1. **Import Workflow**
 
-\### Prerequisites
+   - Open n8n and import `workflow.json`.
 
 
+2. **Configure Schedule Trigger**
 
-\- n8n instance (self-hosted or cloud)
+   - Set the cron expression to run at your preferred time (default: 8:00 AM daily).
 
-\- OpenAI API key
 
-\- Google Sheets account
+3. **Configure Google Sheets**
 
-\- Email account (SMTP)
+   - Connect your Google Sheets OAuth2 account.
 
-\- Slack workspace
+   - Update `YOUR_GOOGLE_SHEET_ID` in all Google Sheets nodes.
 
+   - Create two sheets with the following columns:
 
+     - **"Inventory"**: product_name, current_stock, historical_sales, seasonality, lead_time, unit_cost, supplier_email.
 
-\### Setup Steps
+     - **"PurchaseOrdersLog"**: po_number, product_name, current_stock, reorder_point, order_quantity, estimated_cost, is_urgent, status, generated_at.
 
 
+4. **Configure OpenAI**
 
-1\. \*\*Import Workflow\*\*
+   - Connect your OpenAI API credentials to the "AI Demand Forecasting" node.
 
-&#x20;  - Open n8n and import `workflow.json`.
 
+5. **Configure Email & Slack**
 
+   - Update `procurement@yourcompany.com` with your actual sender email.
 
-2\. \*\*Configure Schedule Trigger\*\*
+   - Connect your Slack API and update the channel name (default: `#procurement-alerts`).
 
-&#x20;  - Set the cron expression to run at your preferred time (default: 8:00 AM daily).
 
+6. **Activate Workflow**
 
+   - Toggle the workflow to "Active".
 
-3\. \*\*Configure Google Sheets\*\*
 
-&#x20;  - Connect your Google Sheets OAuth2 account.
+## 🔐 Credentials Required
 
-&#x20;  - Update `YOUR\_GOOGLE\_SHEET\_ID` in all Google Sheets nodes.
 
-&#x20;  - Create two sheets with the following columns:
+- **OpenAI API**: OpenAI API key
 
-&#x20;    - \*\*"Inventory"\*\*: product\_name, current\_stock, historical\_sales, seasonality, lead\_time, unit\_cost, supplier\_email.
+- **Google Sheets OAuth2**: Google Sheets API access
 
-&#x20;    - \*\*"PurchaseOrdersLog"\*\*: po\_number, product\_name, current\_stock, reorder\_point, order\_quantity, estimated\_cost, is\_urgent, status, generated\_at.
+- **SMTP Email**: Email sending credentials
 
+- **Slack API**: Slack Bot Token
 
 
-4\. \*\*Configure OpenAI\*\*
+## 💡 Use Cases
 
-&#x20;  - Connect your OpenAI API credentials to the "AI Demand Forecasting" node.
 
+- **E-commerce Retailers**: Automate restocking for fast-moving consumer goods (FMCG).
 
+- **Manufacturing Plants**: Ensure raw materials are ordered before production lines halt.
 
-5\. \*\*Configure Email \& Slack\*\*
+- **Restaurant Chains**: Manage perishable inventory and automate orders to food suppliers.
 
-&#x20;  - Update `procurement@yourcompany.com` with your actual sender email.
+- **Wholesale Distributors**: Handle high volumes of SKUs without manual spreadsheet monitoring.
 
-&#x20;  - Connect your Slack API and update the channel name (default: `#procurement-alerts`).
 
+## 🔧 Customization Ideas
 
 
-6\. \*\*Activate Workflow\*\*
+- **ERP Integration**: Replace Google Sheets with HTTP Request nodes to connect directly to SAP, Oracle, or Microsoft Dynamics.
 
-&#x20;  - Toggle the workflow to "Active".
+- **Dynamic Safety Stock**: Adjust the Code Node to calculate Safety Stock dynamically based on demand variability (standard deviation).
 
+- **Supplier Performance Tracking**: Add a node to track supplier delivery times and update a "Supplier Reliability Score" in the database.
 
+- **Multi-Currency Support**: Add an exchange rate API node if dealing with international suppliers.
 
-\## 🔐 Credentials Required
 
+## 📝 Notes
 
 
-\- \*\*OpenAI API\*\*: OpenAI API key
+- **AI Prompt Tuning**: The AI forecasting prompt can be enhanced by adding specific industry context (e.g., "Account for upcoming holiday sales spikes").
 
-\- \*\*Google Sheets OAuth2\*\*: Google Sheets API access
+- **Thresholds**: The $5,000 auto-approval threshold is hardcoded in the Switch Node. Adjust this value based on your company's financial policies.
 
-\- \*\*SMTP Email\*\*: Email sending credentials
 
-\- \*\*Slack API\*\*: Slack Bot Token
+## 🐛 Troubleshooting
 
 
+**Issue**: AI Forecasting node failing
 
-\## 💡 Use Cases
+- **Solution**: Ensure the "Inventory" sheet contains numeric values for `historical_sales` and `lead_time`.
 
 
+**Issue**: PO not sent to supplier
 
-\- \*\*E-commerce Retailers\*\*: Automate restocking for fast-moving consumer goods (FMCG).
+- **Solution**: Check the `supplier_email` column in the Inventory sheet and verify SMTP credentials.
 
-\- \*\*Manufacturing Plants\*\*: Ensure raw materials are ordered before production lines halt.
 
-\- \*\*Restaurant Chains\*\*: Manage perishable inventory and automate orders to food suppliers.
+**Issue**: Switch node routing incorrectly
 
-\- \*\*Wholesale Distributors\*\*: Handle high volumes of SKUs without manual spreadsheet monitoring.
+- **Solution**: Verify that `estimated_cost` is being calculated as a number in the Code Node, not a string.
 
 
-
-\## 🔧 Customization Ideas
-
-
-
-\- \*\*ERP Integration\*\*: Replace Google Sheets with HTTP Request nodes to connect directly to SAP, Oracle, or Microsoft Dynamics.
-
-\- \*\*Dynamic Safety Stock\*\*: Adjust the Code Node to calculate Safety Stock dynamically based on demand variability (standard deviation).
-
-\- \*\*Supplier Performance Tracking\*\*: Add a node to track supplier delivery times and update a "Supplier Reliability Score" in the database.
-
-\- \*\*Multi-Currency Support\*\*: Add an exchange rate API node if dealing with international suppliers.
-
-
-
-\## 📝 Notes
-
-
-
-\- \*\*AI Prompt Tuning\*\*: The AI forecasting prompt can be enhanced by adding specific industry context (e.g., "Account for upcoming holiday sales spikes").
-
-\- \*\*Thresholds\*\*: The $5,000 auto-approval threshold is hardcoded in the Switch Node. Adjust this value based on your company's financial policies.
-
-
-
-\## 🐛 Troubleshooting
-
-
-
-\*\*Issue\*\*: AI Forecasting node failing
-
-\- \*\*Solution\*\*: Ensure the "Inventory" sheet contains numeric values for `historical\_sales` and `lead\_time`.
-
-
-
-\*\*Issue\*\*: PO not sent to supplier
-
-\- \*\*Solution\*\*: Check the `supplier\_email` column in the Inventory sheet and verify SMTP credentials.
-
-
-
-\*\*Issue\*\*: Switch node routing incorrectly
-
-\- \*\*Solution\*\*: Verify that `estimated\_cost` is being calculated as a number in the Code Node, not a string.
-
-
-
-\##  License
-
+##  License
 
 
 This workflow is provided as-is for educational and commercial use.
 
 
-
-\## 🤝 Contributing
-
+## 🤝 Contributing
 
 
 Feel free to fork, modify, and improve this workflow for your specific supply chain needs.
 
 
-
 \---
 
 
+**Created for**: agentic-automation-lab
 
-\*\*Created for\*\*: n8n-workflows-practice  
+**Exercise**: 19 - Smart Supply Chain & Inventory Management
 
-\*\*Exercise\*\*: 19 - Smart Supply Chain \& Inventory Management  
+**Author**: Koroosh
 
-\*\*Author\*\*: Koroosh  
-
-\*\*Date\*\*: 2026
-
+**Date**: 2026

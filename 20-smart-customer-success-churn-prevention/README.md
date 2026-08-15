@@ -1,252 +1,214 @@
-\# Smart Customer Success \& Churn Prevention
+# Smart Customer Success & Churn Prevention
+
+![Level](https://img.shields.io/badge/Level-Intermediate-0D6EFD)
 
 
-
-\## 📋 Description
-
+## 📋 Description
 
 
 An advanced, AI-driven Customer Success automation system designed for SaaS and subscription-based businesses. It proactively monitors customer health by analyzing usage data, support tickets, and NPS scores. Using AI, it calculates a dynamic Health Score, generates personalized retention offers, and triggers targeted interventions (from urgent Slack alerts to upsell emails) to prevent churn and maximize Customer Lifetime Value (LTV).
 
 
+## 🔧 Nodes Used
 
-\## 🔧 Nodes Used
 
+- **Schedule Trigger** - Weekly health checks and monthly executive reporting
 
+- **Google Sheets** - Acts as the CRM database for customer profiles and health score logs
 
-\- \*\*Schedule Trigger\*\* - Weekly health checks and monthly executive reporting
+- **OpenAI GPT-4** - Calculates AI Health Scores, analyzes churn probability, and generates monthly strategic reports
 
-\- \*\*Google Sheets\*\* - Acts as the CRM database for customer profiles and health score logs
+- **Code Node** - Generates unique, personalized retention discount codes
 
-\- \*\*OpenAI GPT-4\*\* - Calculates AI Health Scores, analyzes churn probability, and generates monthly strategic reports
+- **Switch Node** - Dynamically routes customers based on their Health Score (High Risk, Medium Risk, Healthy)
 
-\- \*\*Code Node\*\* - Generates unique, personalized retention discount codes
+- **Slack** - Sends urgent internal alerts to the Customer Success team for high-risk accounts
 
-\- \*\*Switch Node\*\* - Dynamically routes customers based on their Health Score (High Risk, Medium Risk, Healthy)
+- **Email Send** - Delivers personalized retention, check-in, and upsell emails to customers
 
-\- \*\*Slack\*\* - Sends urgent internal alerts to the Customer Success team for high-risk accounts
 
-\- \*\*Email Send\*\* - Delivers personalized retention, check-in, and upsell emails to customers
+## 🔄 Workflow Diagram
 
 
+![Workflow Diagram](screenshots/workflow-diagram.png)
 
-\## 🔄 Workflow Diagram
 
+## ⚙️ How It Works
 
 
-!\[Workflow Diagram](screenshots/workflow-diagram.png)
+### Phase 1: Weekly Data Collection & AI Health Scoring
 
+1. **Scheduled Trigger**: Runs every Monday morning to fetch active customer data from the "Customers" Google Sheet.
 
+2. **AI Analysis**: GPT-4 evaluates multiple data points (monthly usage, login frequency, support tickets, NPS, payment history) to calculate a 0-100 Health Score, churn probability, and identifies top risk factors.
 
-\## ⚙️ How It Works
 
+### Phase 2: Retention Code Generation
 
+1. **Code Node**: Generates a unique, trackable discount code (e.g., `SAVE-ENT-4829`) and determines the discount percentage based on the customer's plan and risk level.
 
-\### Phase 1: Weekly Data Collection \& AI Health Scoring
 
-1\. \*\*Scheduled Trigger\*\*: Runs every Monday morning to fetch active customer data from the "Customers" Google Sheet.
+### Phase 3: Dynamic Routing & Intervention
 
-2\. \*\*AI Analysis\*\*: GPT-4 evaluates multiple data points (monthly usage, login frequency, support tickets, NPS, payment history) to calculate a 0-100 Health Score, churn probability, and identifies top risk factors.
+1. **Switch Node**: Routes the customer into one of three buckets based on their Health Score:
 
+   - **High Risk (< 40)**: Triggers an urgent Slack alert to the internal team AND sends a highly personalized "Retention Offer" email with the generated discount code.
 
+   - **Medium Risk (40 - 70)**: Sends a friendly "Check-in" email with educational resources and an invitation to book a success call.
 
-\### Phase 2: Retention Code Generation
+   - **Healthy (> 70)**: Sends a "Thank You" email, requests a testimonial, and presents an exclusive Upsell opportunity.
 
-1\. \*\*Code Node\*\*: Generates a unique, trackable discount code (e.g., `SAVE-ENT-4829`) and determines the discount percentage based on the customer's plan and risk level.
 
+### Phase 4: CRM Logging
 
+1. **Database Update**: All actions, scores, and generated codes are logged in the "HealthScoreLog" sheet for historical tracking and audit.
 
-\### Phase 3: Dynamic Routing \& Intervention
 
-1\. \*\*Switch Node\*\*: Routes the customer into one of three buckets based on their Health Score:
+### Phase 5: Monthly Executive Reporting
 
-&#x20;  - \*\*High Risk (< 40)\*\*: Triggers an urgent Slack alert to the internal team AND sends a highly personalized "Retention Offer" email with the generated discount code.
+1. **Monthly Trigger**: Runs on the 1st of every month to fetch the "HealthScoreLog".
 
-&#x20;  - \*\*Medium Risk (40 - 70)\*\*: Sends a friendly "Check-in" email with educational resources and an invitation to book a success call.
+2. **AI Report Generation**: GPT-4 analyzes the month's data to calculate predicted churn rates, estimated revenue saved by retention campaigns, and generates strategic recommendations for leadership.
 
-&#x20;  - \*\*Healthy (> 70)\*\*: Sends a "Thank You" email, requests a testimonial, and presents an exclusive Upsell opportunity.
+3. **Email Delivery**: A comprehensive executive summary is emailed to the leadership team.
 
 
+## 🚀 How to Use
 
-\### Phase 4: CRM Logging
 
-1\. \*\*Database Update\*\*: All actions, scores, and generated codes are logged in the "HealthScoreLog" sheet for historical tracking and audit.
+### Prerequisites
 
 
+- n8n instance (self-hosted or cloud)
 
-\### Phase 5: Monthly Executive Reporting
+- OpenAI API key
 
-1\. \*\*Monthly Trigger\*\*: Runs on the 1st of every month to fetch the "HealthScoreLog".
+- Google Sheets account
 
-2\. \*\*AI Report Generation\*\*: GPT-4 analyzes the month's data to calculate predicted churn rates, estimated revenue saved by retention campaigns, and generates strategic recommendations for leadership.
+- Email account (SMTP)
 
-3\. \*\*Email Delivery\*\*: A comprehensive executive summary is emailed to the leadership team.
+- Slack workspace
 
 
+### Setup Steps
 
-\## 🚀 How to Use
 
+1. **Import Workflow**
 
+   - Open n8n and import `workflow.json`.
 
-\### Prerequisites
 
+2. **Configure Google Sheets**
 
+   - Connect your Google Sheets OAuth2 account.
 
-\- n8n instance (self-hosted or cloud)
+   - Update `YOUR_GOOGLE_SHEET_ID` in all Google Sheets nodes.
 
-\- OpenAI API key
+   - Create two sheets with the following columns:
 
-\- Google Sheets account
+     - **"Customers"**: customer_name, email, plan, monthly_usage_hours, login_frequency, support_tickets, nps_score, account_age_months, payment_history.
 
-\- Email account (SMTP)
+     - **"HealthScoreLog"**: customer_name, email, plan, health_score, risk_level, churn_probability, action_taken, retention_code, analyzed_at.
 
-\- Slack workspace
 
+3. **Configure OpenAI**
 
+   - Connect your OpenAI API credentials to both AI nodes ("AI Health Score Analysis" and "AI Monthly Report Generation").
 
-\### Setup Steps
 
+4. **Configure Slack & Email**
 
+   - Connect your Slack API and update the channel name (default: `#customer-success-alerts`).
 
-1\. \*\*Import Workflow\*\*
+   - Update `success@yourcompany.com` (sender) and `leadership@yourcompany.com` (monthly reports) with your actual email addresses.
 
-&#x20;  - Open n8n and import `workflow.json`.
 
+5. **Activate Workflow**
 
+   - Toggle the workflow to "Active".
 
-2\. \*\*Configure Google Sheets\*\*
 
-&#x20;  - Connect your Google Sheets OAuth2 account.
+## 🔐 Credentials Required
 
-&#x20;  - Update `YOUR\_GOOGLE\_SHEET\_ID` in all Google Sheets nodes.
 
-&#x20;  - Create two sheets with the following columns:
+- **OpenAI API**: OpenAI API key
 
-&#x20;    - \*\*"Customers"\*\*: customer\_name, email, plan, monthly\_usage\_hours, login\_frequency, support\_tickets, nps\_score, account\_age\_months, payment\_history.
+- **Google Sheets OAuth2**: Google Sheets API access
 
-&#x20;    - \*\*"HealthScoreLog"\*\*: customer\_name, email, plan, health\_score, risk\_level, churn\_probability, action\_taken, retention\_code, analyzed\_at.
+- **SMTP Email**: Email sending credentials
 
+- **Slack API**: Slack Bot Token
 
 
-3\. \*\*Configure OpenAI\*\*
+## 💡 Use Cases
 
-&#x20;  - Connect your OpenAI API credentials to both AI nodes ("AI Health Score Analysis" and "AI Monthly Report Generation").
 
+- **SaaS Companies**: Proactively identify and save at-risk subscriptions before they cancel.
 
+- **B2B Service Providers**: Monitor client engagement and ensure high-touch clients receive timely attention.
 
-4\. \*\*Configure Slack \& Email\*\*
+- **Membership Platforms**: Reduce member churn by offering targeted incentives and resources.
 
-&#x20;  - Connect your Slack API and update the channel name (default: `#customer-success-alerts`).
+- **Subscription Boxes**: Analyze customer feedback and usage to prevent subscription fatigue.
 
-&#x20;  - Update `success@yourcompany.com` (sender) and `leadership@yourcompany.com` (monthly reports) with your actual email addresses.
 
+## 🔧 Customization Ideas
 
 
-5\. \*\*Activate Workflow\*\*
+- **CRM Integration**: Replace Google Sheets with HTTP Request nodes to sync data directly with Salesforce, HubSpot, or Pipedrive.
 
-&#x20;  - Toggle the workflow to "Active".
+- **Automated Calls**: Integrate Twilio to automatically schedule a phone call from a Customer Success Manager for "High Risk" accounts.
 
+- **Product Telemetry**: Connect directly to analytics tools like Mixpanel or Amplitude via API to get real-time usage data instead of relying on static spreadsheet columns.
 
+- **A/B Testing**: Create different email templates for the retention campaigns and use a randomizer in the Code Node to test which messaging works best.
 
-\## 🔐 Credentials Required
 
+## 📝 Notes
 
 
-\- \*\*OpenAI API\*\*: OpenAI API key
+- **AI Prompt Tuning**: The AI Health Score prompt is highly sensitive to the data provided. Ensure your "Customers" sheet has clean, numeric data for usage and tickets to get accurate scoring.
 
-\- \*\*Google Sheets OAuth2\*\*: Google Sheets API access
+- **Code Expiration**: The Code Node sets a 14-day validity for high-risk codes. Ensure your billing system (e.g., Stripe) is configured to accept and validate these codes.
 
-\- \*\*SMTP Email\*\*: Email sending credentials
 
-\- \*\*Slack API\*\*: Slack Bot Token
+## 🐛 Troubleshooting
 
 
+**Issue**: AI Health Score returning errors
 
-\## 💡 Use Cases
+- **Solution**: Check the "Customers" sheet. Ensure `monthly_usage_hours`, `login_frequency`, and `nps_score` are formatted as numbers, not text.
 
 
+**Issue**: Switch node routing everyone to "Healthy"
 
-\- \*\*SaaS Companies\*\*: Proactively identify and save at-risk subscriptions before they cancel.
+- **Solution**: Verify the expression in the Switch node. It parses the JSON string from the AI node. Ensure the AI node is successfully outputting the `health_score` key.
 
-\- \*\*B2B Service Providers\*\*: Monitor client engagement and ensure high-touch clients receive timely attention.
 
-\- \*\*Membership Platforms\*\*: Reduce member churn by offering targeted incentives and resources.
+**Issue**: Slack alert not sending
 
-\- \*\*Subscription Boxes\*\*: Analyze customer feedback and usage to prevent subscription fatigue.
+- **Solution**: Verify the Slack Bot has been invited to the `#customer-success-alerts` channel and has the correct posting permissions.
 
 
-
-\## 🔧 Customization Ideas
-
-
-
-\- \*\*CRM Integration\*\*: Replace Google Sheets with HTTP Request nodes to sync data directly with Salesforce, HubSpot, or Pipedrive.
-
-\- \*\*Automated Calls\*\*: Integrate Twilio to automatically schedule a phone call from a Customer Success Manager for "High Risk" accounts.
-
-\- \*\*Product Telemetry\*\*: Connect directly to analytics tools like Mixpanel or Amplitude via API to get real-time usage data instead of relying on static spreadsheet columns.
-
-\- \*\*A/B Testing\*\*: Create different email templates for the retention campaigns and use a randomizer in the Code Node to test which messaging works best.
-
-
-
-\## 📝 Notes
-
-
-
-\- \*\*AI Prompt Tuning\*\*: The AI Health Score prompt is highly sensitive to the data provided. Ensure your "Customers" sheet has clean, numeric data for usage and tickets to get accurate scoring.
-
-\- \*\*Code Expiration\*\*: The Code Node sets a 14-day validity for high-risk codes. Ensure your billing system (e.g., Stripe) is configured to accept and validate these codes.
-
-
-
-\## 🐛 Troubleshooting
-
-
-
-\*\*Issue\*\*: AI Health Score returning errors
-
-\- \*\*Solution\*\*: Check the "Customers" sheet. Ensure `monthly\_usage\_hours`, `login\_frequency`, and `nps\_score` are formatted as numbers, not text.
-
-
-
-\*\*Issue\*\*: Switch node routing everyone to "Healthy"
-
-\- \*\*Solution\*\*: Verify the expression in the Switch node. It parses the JSON string from the AI node. Ensure the AI node is successfully outputting the `health\_score` key.
-
-
-
-\*\*Issue\*\*: Slack alert not sending
-
-\- \*\*Solution\*\*: Verify the Slack Bot has been invited to the `#customer-success-alerts` channel and has the correct posting permissions.
-
-
-
-\## 📄 License
-
+## 📄 License
 
 
 This workflow is provided as-is for educational and commercial use.
 
 
-
-\##  Contributing
-
+##  Contributing
 
 
 Feel free to fork, modify, and improve this workflow to fit your specific Customer Success operations.
 
 
-
 \---
 
 
+**Created for**: agentic-automation-lab
 
-\*\*Created for\*\*: n8n-workflows-practice  
+**Exercise**: 20 - Smart Customer Success & Churn Prevention (Milestone)
 
-\*\*Exercise\*\*: 20 - Smart Customer Success \& Churn Prevention (Milestone)  
+**Author**: Koroosh
 
-\*\*Author\*\*: Koroosh  
-
-\*\*Date\*\*: 2026
-
+**Date**: 2026

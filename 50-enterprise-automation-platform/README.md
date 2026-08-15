@@ -1,5 +1,7 @@
 # Enterprise Automation Platform (Capstone)
 
+![Level](https://img.shields.io/badge/Level-Capstone-D97706)
+
 > Project 50 — the final capstone of the n8n Enterprise practice series
 > A production-oriented reference platform that combines concepts from Projects 1–49:
 > orchestration, AI triage, ETL with DLQ, human-in-the-loop, observability, and infrastructure-as-code

@@ -1,260 +1,222 @@
-\# Smart Event \& Conference Management
+# Smart Event & Conference Management
+
+![Level](https://img.shields.io/badge/Level-Intermediate-0D6EFD)
 
 
-
-\## 📋 Description
-
+## 📋 Description
 
 
 A comprehensive event and conference management system that automates the entire attendee journey. It handles smart registration, automated ticketing, scheduled reminders, event-day check-ins, and post-event feedback collection with AI-powered sentiment analysis to generate actionable insights for organizers.
 
 
+## 🔧 Nodes Used
 
-\## 🔧 Nodes Used
 
+- **Webhook** - Handles registration, check-in, and feedback submissions
 
+- **Code Node** - Generates ticket IDs and QR code payloads
 
-\- \*\*Webhook\*\* - Handles registration, check-in, and feedback submissions
+- **Google Sheets** - Acts as the database for registrations and feedback logs
 
-\- \*\*Code Node\*\* - Generates ticket IDs and QR code payloads
+- **Email Send** - Sends tickets, reminders, and feedback requests
 
-\- \*\*Google Sheets\*\* - Acts as the database for registrations and feedback logs
+- **Wait Node** - Manages time-delayed pre-event reminders
 
-\- \*\*Email Send\*\* - Sends tickets, reminders, and feedback requests
+- **Schedule Trigger** - Triggers post-event feedback emails
 
-\- \*\*Wait Node\*\* - Manages time-delayed pre-event reminders
+- **OpenAI GPT-4** - Analyzes feedback sentiment and extracts key themes
 
-\- \*\*Schedule Trigger\*\* - Triggers post-event feedback emails
 
-\- \*\*OpenAI GPT-4\*\* - Analyzes feedback sentiment and extracts key themes
+## 🔄 Workflow Diagram
 
 
+![Workflow Diagram](screenshots/workflow-diagram.png)
 
-\## 🔄 Workflow Diagram
 
+## ⚙️ How It Works
 
 
-!\[Workflow Diagram](screenshots/workflow-diagram.png)
+### Phase 1: Registration & Ticketing
 
+1. **Webhook Trigger**: Receives attendee data from the registration form.
 
+2. **Ticket Generation**: Code node creates a unique Ticket ID and a check-in URL payload.
 
-\## ⚙️ How It Works
+3. **Database Logging**: Saves attendee details to the "Registrations" Google Sheet.
 
+4. **Ticket Email**: Sends a confirmation email with the Ticket ID and event details.
 
 
-\### Phase 1: Registration \& Ticketing
+### Phase 2: Pre-Event Reminders
 
-1\. \*\*Webhook Trigger\*\*: Receives attendee data from the registration form.
+1. **7-Day Reminder**: Automatically sent one week before the event.
 
-2\. \*\*Ticket Generation\*\*: Code node creates a unique Ticket ID and a check-in URL payload.
+2. **1-Day Reminder**: Automatically sent the day before the event with final instructions.
 
-3\. \*\*Database Logging\*\*: Saves attendee details to the "Registrations" Google Sheet.
 
-4\. \*\*Ticket Email\*\*: Sends a confirmation email with the Ticket ID and event details.
+### Phase 3: Event Day Check-in
 
+1. **Check-in Webhook**: Triggered when the attendee's QR code/Ticket ID is scanned at the venue.
 
+2. **Attendance Update**: Updates the "Registrations" sheet to mark the attendee as "attended" with a timestamp.
 
-\### Phase 2: Pre-Event Reminders
 
-1\. \*\*7-Day Reminder\*\*: Automatically sent one week before the event.
+### Phase 4: Post-Event Feedback & AI Analysis
 
-2\. \*\*1-Day Reminder\*\*: Automatically sent the day before the event with final instructions.
+1. **Scheduled Trigger**: Runs after the event ends to fetch all registered attendees.
 
+2. **Feedback Request**: Sends an email asking for feedback and a rating.
 
+3. **Feedback Webhook**: Receives the submitted feedback.
 
-\### Phase 3: Event Day Check-in
+4. **AI Analysis**: GPT-4 analyzes the text feedback to determine sentiment, key themes, and an overall score.
 
-1\. \*\*Check-in Webhook\*\*: Triggered when the attendee's QR code/Ticket ID is scanned at the venue.
+5. **Logging**: Saves the analyzed feedback to the "FeedbackLog" sheet.
 
-2\. \*\*Attendance Update\*\*: Updates the "Registrations" sheet to mark the attendee as "attended" with a timestamp.
 
+## 🚀 How to Use
 
 
-\### Phase 4: Post-Event Feedback \& AI Analysis
+### Prerequisites
 
-1\. \*\*Scheduled Trigger\*\*: Runs after the event ends to fetch all registered attendees.
 
-2\. \*\*Feedback Request\*\*: Sends an email asking for feedback and a rating.
+- n8n instance (self-hosted or cloud)
 
-3\. \*\*Feedback Webhook\*\*: Receives the submitted feedback.
+- Google Sheets account
 
-4\. \*\*AI Analysis\*\*: GPT-4 analyzes the text feedback to determine sentiment, key themes, and an overall score.
+- Email account (SMTP)
 
-5\. \*\*Logging\*\*: Saves the analyzed feedback to the "FeedbackLog" sheet.
+- OpenAI API key
 
 
+### Setup Steps
 
-\## 🚀 How to Use
 
+1. **Import Workflow**
 
+   - Open n8n and import `workflow.json`.
 
-\### Prerequisites
 
+2. **Configure Webhooks**
 
+   - Copy the production URLs for `Registration Webhook`, `Check-in Webhook`, and `Feedback Webhook`.
 
-\- n8n instance (self-hosted or cloud)
+   - Integrate these URLs into your frontend forms or QR code scanners.
 
-\- Google Sheets account
 
-\- Email account (SMTP)
+3. **Configure Google Sheets**
 
-\- OpenAI API key
+   - Connect your Google Sheets OAuth2 account.
 
+   - Update `YOUR_GOOGLE_SHEET_ID` in all Google Sheets nodes.
 
+   - Create two sheets with the following columns:
 
-\### Setup Steps
+     - **"Registrations"**: ticket_id, full_name, email, phone, company, interests, registration_date, status, attended, feedback_submitted, check_in_time.
 
+     - **"FeedbackLog"**: ticket_id, rating, feedback_text, sentiment, overall_score, submitted_at.
 
 
-1\. \*\*Import Workflow\*\*
+4. **Configure Email Notifications**
 
-&#x20;  - Open n8n and import `workflow.json`.
+   - Update `events@yourcompany.com` with your actual sender email.
 
+   - Replace placeholder text like `[Event Name]`, `[Event Date]`, `[Event Location]`, and `[Feedback Link]` with your actual event details.
 
 
-2\. \*\*Configure Webhooks\*\*
+5. **Configure OpenAI**
 
-&#x20;  - Copy the production URLs for `Registration Webhook`, `Check-in Webhook`, and `Feedback Webhook`.
+   - Connect your OpenAI API credentials to the "AI Analyze Feedback" node.
 
-&#x20;  - Integrate these URLs into your frontend forms or QR code scanners.
 
+6. **Activate Workflow**
 
+   - Toggle the workflow to "Active" to enable the Webhooks and Wait nodes.
 
-3\. \*\*Configure Google Sheets\*\*
 
-&#x20;  - Connect your Google Sheets OAuth2 account.
+## 🔐 Credentials Required
 
-&#x20;  - Update `YOUR\_GOOGLE\_SHEET\_ID` in all Google Sheets nodes.
 
-&#x20;  - Create two sheets with the following columns:
+- **Google Sheets OAuth2**: Google Sheets API access
 
-&#x20;    - \*\*"Registrations"\*\*: ticket\_id, full\_name, email, phone, company, interests, registration\_date, status, attended, feedback\_submitted, check\_in\_time.
+- **SMTP Email**: Email sending credentials
 
-&#x20;    - \*\*"FeedbackLog"\*\*: ticket\_id, rating, feedback\_text, sentiment, overall\_score, submitted\_at.
+- **OpenAI API**: OpenAI API key
 
 
+##  Use Cases
 
-4\. \*\*Configure Email Notifications\*\*
 
-&#x20;  - Update `events@yourcompany.com` with your actual sender email.
+- **Corporate Conferences**: Manage large-scale professional events and track attendance.
 
-&#x20;  - Replace placeholder text like `\[Event Name]`, `\[Event Date]`, `\[Event Location]`, and `\[Feedback Link]` with your actual event details.
+- **Workshops & Seminars**: Automate ticketing and post-training feedback.
 
+- **Webinars & Virtual Events**: Handle digital check-ins and gather participant insights.
 
+- **Ticketed Meetups**: Streamline the registration and entry process.
 
-5\. \*\*Configure OpenAI\*\*
 
-&#x20;  - Connect your OpenAI API credentials to the "AI Analyze Feedback" node.
+## 🔧 Customization Ideas
 
 
+- **PDF Ticket Generation**: Integrate an HTML-to-PDF API to attach a visual ticket with a scannable QR code to the confirmation email.
 
-6\. \*\*Activate Workflow\*\*
+- **Smart Networking**: Use AI to match attendees with similar interests and send introduction emails before the event.
 
-&#x20;  - Toggle the workflow to "Active" to enable the Webhooks and Wait nodes.
+- **Payment Gateway**: Add an HTTP Request node to a payment provider (e.g., Stripe) to require payment before finalizing registration.
 
+- **SMS Reminders**: Integrate Twilio or a local SMS gateway for higher open rates on reminders.
 
+- **Certificate Generation**: Automatically generate and email a PDF certificate of attendance for those marked as "attended".
 
-\## 🔐 Credentials Required
 
+##  Notes
 
 
-\- \*\*Google Sheets OAuth2\*\*: Google Sheets API access
+- **Wait Nodes**: Ensure your n8n instance is configured to handle long-running executions. For self-hosted n8n, ensure the `EXECUTIONS_MODE` is set to support waiting webhooks.
 
-\- \*\*SMTP Email\*\*: Email sending credentials
+- **Placeholders**: Don't forget to replace all bracketed placeholders (e.g., `[Event Name]`) in the email nodes before activating the workflow.
 
-\- \*\*OpenAI API\*\*: OpenAI API key
+- **Check-in Logic**: The check-in webhook expects a `ticket_id` in the JSON payload. Ensure your scanner or frontend app sends this correctly.
 
 
+##  Troubleshooting
 
-\##  Use Cases
 
+**Issue**: Wait nodes not resuming
 
+- **Solution**: Ensure n8n is running in production mode with a valid webhook URL configured in the environment variables.
 
-\- \*\*Corporate Conferences\*\*: Manage large-scale professional events and track attendance.
 
-\- \*\*Workshops \& Seminars\*\*: Automate ticketing and post-training feedback.
+**Issue**: Google Sheets not updating
 
-\- \*\*Webinars \& Virtual Events\*\*: Handle digital check-ins and gather participant insights.
+- **Solution**: Verify the sheet name matches exactly ("Registrations" or "FeedbackLog") and check the column mappings.
 
-\- \*\*Ticketed Meetups\*\*: Streamline the registration and entry process.
 
+**Issue**: AI feedback analysis failing
 
+- **Solution**: Check your OpenAI API key and ensure the feedback text is not empty.
 
-\## 🔧 Customization Ideas
 
-
-
-\- \*\*PDF Ticket Generation\*\*: Integrate an HTML-to-PDF API to attach a visual ticket with a scannable QR code to the confirmation email.
-
-\- \*\*Smart Networking\*\*: Use AI to match attendees with similar interests and send introduction emails before the event.
-
-\- \*\*Payment Gateway\*\*: Add an HTTP Request node to a payment provider (e.g., Stripe) to require payment before finalizing registration.
-
-\- \*\*SMS Reminders\*\*: Integrate Twilio or a local SMS gateway for higher open rates on reminders.
-
-\- \*\*Certificate Generation\*\*: Automatically generate and email a PDF certificate of attendance for those marked as "attended".
-
-
-
-\##  Notes
-
-
-
-\- \*\*Wait Nodes\*\*: Ensure your n8n instance is configured to handle long-running executions. For self-hosted n8n, ensure the `EXECUTIONS\_MODE` is set to support waiting webhooks.
-
-\- \*\*Placeholders\*\*: Don't forget to replace all bracketed placeholders (e.g., `\[Event Name]`) in the email nodes before activating the workflow.
-
-\- \*\*Check-in Logic\*\*: The check-in webhook expects a `ticket\_id` in the JSON payload. Ensure your scanner or frontend app sends this correctly.
-
-
-
-\##  Troubleshooting
-
-
-
-\*\*Issue\*\*: Wait nodes not resuming
-
-\- \*\*Solution\*\*: Ensure n8n is running in production mode with a valid webhook URL configured in the environment variables.
-
-
-
-\*\*Issue\*\*: Google Sheets not updating
-
-\- \*\*Solution\*\*: Verify the sheet name matches exactly ("Registrations" or "FeedbackLog") and check the column mappings.
-
-
-
-\*\*Issue\*\*: AI feedback analysis failing
-
-\- \*\*Solution\*\*: Check your OpenAI API key and ensure the feedback text is not empty.
-
-
-
-\##  License
-
+##  License
 
 
 This workflow is provided as-is for educational and commercial use.
 
 
-
-\## 🤝 Contributing
-
+## 🤝 Contributing
 
 
 Feel free to fork, modify, and improve this workflow for your specific event management needs.
 
 
-
 \---
 
 
+**Created for**: agentic-automation-lab
 
-\*\*Created for\*\*: n8n-workflows-practice  
+**Exercise**: 15 - Smart Event & Conference Management
 
-\*\*Exercise\*\*: 15 - Smart Event \& Conference Management  
+**Author**: Koroosh
 
-\*\*Author\*\*: Koroosh  
-
-\*\*Date\*\*: 2026
-
+**Date**: 2026

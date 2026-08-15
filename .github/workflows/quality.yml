@@ -1,0 +1,87 @@
+name: Repository Quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  repository-validation:
+    name: JSON, links, and catalog
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python scripts/validate_repository.py
+
+  yaml-validation:
+    name: YAML and Compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml
+      - name: Parse YAML files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+          for path in Path('.').rglob('*'):
+              if path.suffix in {'.yml', '.yaml'} and '.git' not in path.parts:
+                  with path.open(encoding='utf-8') as stream:
+                      list(yaml.safe_load_all(stream))
+                  print(f'valid: {path}')
+          PY
+      - name: Validate Docker Compose files
+        run: |
+          while IFS= read -r file; do
+            docker compose -f "$file" config --quiet
+          done < <(find . -type f \( \
+            -iname 'docker-compose.yml' -o \
+            -iname 'docker-compose.yaml' -o \
+            -iname 'compose.yml' -o \
+            -iname 'compose.yaml' \
+          \))
+
+  typescript-build:
+    name: Custom-node TypeScript builds
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - 44-custom-node-zarinpal
+          - 45-custom-trigger-bale
+          - 46-custom-data-transformer
+          - 47-custom-node-pagination
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+      - working-directory: ${{ matrix.project }}
+        # The build only needs TypeScript declarations; skip native dependency
+        # install scripts (notably isolated-vm) on the generic CI runner.
+        run: npm ci --ignore-scripts
+      - working-directory: ${{ matrix.project }}
+        run: npm run build
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

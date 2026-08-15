@@ -1,7 +1,9 @@
-n8n Custom Node: Zarinpal (Iranian Payment Gateway)
+# n8n Custom Node: Zarinpal (Iranian Payment Gateway)
+
+![Level](https://img.shields.io/badge/Level-Production--oriented-198754)
 
 > Project 44 of the n8n Enterprise practice series
-> A production-ready community node for the Zarinpal IPG v4 API, built from scratch with TypeScript
+> A production-oriented community node reference for the Zarinpal IPG v4 API, built from scratch with TypeScript
 
 ---
 
@@ -107,7 +109,7 @@ Set the environment variable to point to your project folder, then restart n8n:
 export N8N_CUSTOM_EXTENSIONS=/full/path/to/44-custom-node-zarinpal
 
 # Windows (PowerShell)
-set N8N_CUSTOM_EXTENSIONS=E:\P\git project\n8n-workflows-practice\44-custom-node-zarinpal
+set N8N_CUSTOM_EXTENSIONS=E:\P\git project\agentic-automation-lab\44-custom-node-zarinpal
 ```
 
 ### Method B: Install into the n8n custom nodes folder (persistent)
@@ -123,7 +125,7 @@ npm install /full/path/to/44-custom-node-zarinpal
 # Windows
 mkdir %USERPROFILE%\.n8n\nodes
 cd %USERPROFILE%\.n8n\nodes
-npm install "E:\P\git project\n8n-workflows-practice\44-custom-node-zarinpal"
+npm install "E:\P\git project\agentic-automation-lab\44-custom-node-zarinpal"
 ```
 
 Restart n8n afterwards. The **Zarinpal** node will appear in the node search panel.
@@ -249,6 +251,6 @@ Users can then install it via **Settings** → **Community Nodes** in n8n.
 
 ---
 
-Repository: https://github.com/kooroosh1363/n8n-workflows-practice
+Repository: https://github.com/kooroosh1363/agentic-automation-lab
 Author: kooroosh1363
 Date: 2026
