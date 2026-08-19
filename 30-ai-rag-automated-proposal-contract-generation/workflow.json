@@ -12,20 +12,28 @@
       "name": "Webhook: Receive RFP",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 400],
+      "position": [
+        240,
+        400
+      ],
       "webhookId": "rfp-submission-webhook-30"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT proposal_template, pricing_tier, case_study FROM knowledge_base WHERE industry = '{{ $json.industry }}' AND service_type = '{{ $json.service_type }}' LIMIT 1;",
-        "options": {}
+        "query": "SELECT proposal_template, pricing_tier, case_study FROM knowledge_base WHERE industry = $1 AND service_type = $2 LIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ [$node['Webhook: Receive RFP'].json.body?.industry ?? $node['Webhook: Receive RFP'].json.industry, $node['Webhook: Receive RFP'].json.body?.service_type ?? $node['Webhook: Receive RFP'].json.service_type] }}"
+        }
       },
       "id": "j0k1l2m3-2222-4444-8888-000000000002",
       "name": "PostgreSQL: RAG Knowledge Base",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [460, 400],
+      "position": [
+        460,
+        400
+      ],
       "credentials": {
         "postgres": {
           "id": "4",
@@ -40,11 +48,11 @@
           "messages": [
             {
               "role": "system",
-              "content": "You are an expert B2B sales proposal writer. Using the provided knowledge base data (templates, pricing, case studies), generate a comprehensive, professional proposal for the client. Include: 1) Executive Summary, 2) Proposed Solution, 3) Timeline, 4) Pricing & Investment, 5) Relevant Case Study. Use a professional, persuasive tone. Output in clean Markdown format."
+              "content": "You are an expert B2B sales proposal writer. Use ONLY the approved knowledge-base data provided below for claims, pricing, and case studies. If required information is missing, explicitly mark it as needing human confirmation—never invent it. Generate a professional proposal with: 1) Executive Summary, 2) Proposed Solution, 3) Timeline, 4) Pricing & Investment, and 5) Relevant Case Study. Output clean Markdown."
             },
             {
               "role": "user",
-              "content": "Client Name: {{ $json.client_name }}\nIndustry: {{ $json.industry }}\nService Needed: {{ $json.service_type }}\nBudget: {{ $json.budget }}\nSpecific Requirements: {{ $json.requirements }}\n\nKnowledge Base Data:\nTemplate: {{ $node['PostgreSQL: RAG Knowledge Base'].json.proposal_template }}\nPricing: {{ $node['PostgreSQL: RAG Knowledge Base'].json.pricing_tier }}\nCase Study: {{ $node['PostgreSQL: RAG Knowledge Base'].json.case_study }}"
+              "content": "Client Name: {{ $node['Webhook: Receive RFP'].json.body?.client_name ?? $node['Webhook: Receive RFP'].json.client_name }}\nIndustry: {{ $node['Webhook: Receive RFP'].json.body?.industry ?? $node['Webhook: Receive RFP'].json.industry }}\nService Needed: {{ $node['Webhook: Receive RFP'].json.body?.service_type ?? $node['Webhook: Receive RFP'].json.service_type }}\nBudget: {{ $node['Webhook: Receive RFP'].json.body?.budget ?? $node['Webhook: Receive RFP'].json.budget }}\nSpecific Requirements: {{ $node['Webhook: Receive RFP'].json.body?.requirements ?? $node['Webhook: Receive RFP'].json.requirements }}\n\nApproved Knowledge Base Data:\nTemplate: {{ $node['PostgreSQL: RAG Knowledge Base'].json.proposal_template }}\nPricing: {{ $node['PostgreSQL: RAG Knowledge Base'].json.pricing_tier }}\nCase Study: {{ $node['PostgreSQL: RAG Knowledge Base'].json.case_study }}"
             }
           ]
         },
@@ -56,7 +64,10 @@
       "name": "OpenAI: Generate Proposal",
       "type": "n8n-nodes-base.openAi",
       "typeVersion": 1.2,
-      "position": [680, 400],
+      "position": [
+        680,
+        400
+      ],
       "credentials": {
         "openAiApi": {
           "id": "1",
@@ -66,13 +77,16 @@
     },
     {
       "parameters": {
-        "jsCode": "// فرمت‌دهی نهایی و آماده‌سازی برای ارسال\nconst clientData = $node['Webhook: Receive RFP'].json;\nconst proposalContent = $node['OpenAI: Generate Proposal'].json.text;\n\nreturn [{\n  json: {\n    client_name: clientData.client_name,\n    client_email: clientData.client_email,\n    proposal_markdown: proposalContent,\n    generated_at: new Date().toISOString(),\n    rfp_id: clientData.rfp_id || 'RFP-' + Date.now()\n  }\n}];"
+        "jsCode": "// Normalize the webhook payload and preserve the proposal across approval callbacks.\nconst webhook = $node['Webhook: Receive RFP'].json;\nconst clientData = webhook.body ?? webhook;\nconst proposalContent = $node['OpenAI: Generate Proposal'].json.text;\n\nif (!clientData.client_name || !clientData.client_email) {\n  throw new Error('client_name and client_email are required');\n}\nif (!proposalContent) {\n  throw new Error('The AI node returned an empty proposal');\n}\n\nreturn [{\n  json: {\n    client_name: clientData.client_name,\n    client_email: clientData.client_email,\n    proposal_markdown: proposalContent,\n    generated_at: new Date().toISOString(),\n    rfp_id: clientData.rfp_id || `RFP-${Date.now()}`\n  }\n}];"
       },
       "id": "j0k1l2m3-4444-4444-8888-000000000004",
       "name": "Code: Format Proposal",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [900, 400]
+      "position": [
+        900,
+        400
+      ]
     },
     {
       "parameters": {
@@ -83,14 +97,17 @@
           "mode": "list",
           "cachedResultName": "sales-proposals-review"
         },
-        "text": "📝 *NEW PROPOSAL READY FOR REVIEW*\n\n👤 *Client:* {{ $json.client_name }}\n📧 *Email:* {{ $json.client_email }}\n🆔 *RFP ID:* {{ $json.rfp_id }}\n\n📄 *Proposal Preview:*\n```\n{{ $json.proposal_markdown.substring(0, 500) }}...\n```\n\n✅ *Approve:* {{ $node['Wait: Approval Webhook'].json.webhookUrl }}?decision=approve\n❌ *Reject:* {{ $node['Wait: Approval Webhook'].json.webhookUrl }}?decision=reject\n\n⏳ Please review and click the appropriate link above.",
+        "text": "📝 *NEW PROPOSAL READY FOR REVIEW*\n\n👤 *Client:* {{ $json.client_name }}\n📧 *Email:* {{ $json.client_email }}\n🆔 *RFP ID:* {{ $json.rfp_id }}\n\n📄 *Proposal Preview:*\n```\n{{ $json.proposal_markdown.substring(0, 500) }}...\n```\n\n✅ *Approve:* {{ $execution.resumeUrl }}?decision=approve\n❌ *Reject:* {{ $execution.resumeUrl }}?decision=reject\n\n⏳ Please review and click one decision link.",
         "otherOptions": {}
       },
       "id": "j0k1l2m3-5555-4444-8888-000000000005",
       "name": "Slack: Request Approval",
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.2,
-      "position": [1120, 400],
+      "position": [
+        1120,
+        400
+      ],
       "credentials": {
         "slackApi": {
           "id": "3",
@@ -104,13 +121,18 @@
         "responseBody": "Your decision has been recorded. Thank you!",
         "options": {
           "webhookSuffix": "/approval-callback"
-        }
+        },
+        "resume": "webhook",
+        "httpMethod": "GET"
       },
       "id": "j0k1l2m3-6666-4444-8888-000000000006",
       "name": "Wait: Approval Webhook",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [1340, 400],
+      "position": [
+        1340,
+        400
+      ],
       "webhookId": "approval-callback-webhook-30"
     },
     {
@@ -140,7 +162,10 @@
       "name": "IF: Check Approval",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1560, 400]
+      "position": [
+        1560,
+        400
+      ]
     },
     {
       "parameters": {
@@ -153,17 +178,27 @@
           "parameters": [
             {
               "name": "source",
-              "value": "={{ $json.proposal_markdown }}"
+              "value": "={{ $json.pdf_html }}"
             }
           ]
         },
-        "options": {}
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
       },
       "id": "j0k1l2m3-8888-4444-8888-000000000008",
       "name": "HTTP Request: Generate PDF",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [1780, 320],
+      "position": [
+        2000,
+        320
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "11",
@@ -173,17 +208,28 @@
     },
     {
       "parameters": {
-        "sendTo": "={{ $json.client_email }}",
-        "subject": "Your Customized Proposal is Ready - {{ $json.client_name }}",
+        "sendTo": "={{ $node['Code: Format Proposal'].json.client_email }}",
+        "subject": "=Your Customized Proposal is Ready - {{ $node['Code: Format Proposal'].json.client_name }}",
         "emailType": "text",
-        "message": "Dear {{ $json.client_name }},\n\nThank you for your interest in our services. Please find attached your customized proposal based on your specific requirements.\n\nWe look forward to the possibility of working together.\n\nBest regards,\nThe Sales Team",
-        "options": {}
+        "message": "=Dear {{ $node['Code: Format Proposal'].json.client_name }},\n\nThank you for your interest in our services. Please find your reviewed and approved proposal attached.\n\nWe look forward to the possibility of working together.\n\nBest regards,\nThe Sales Team",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "data"
+              }
+            ]
+          }
+        }
       },
       "id": "j0k1l2m3-9999-4444-8888-000000000009",
       "name": "Gmail: Send to Client",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [2000, 320],
+      "position": [
+        2220,
+        320
+      ],
       "credentials": {
         "gmailOAuth2": {
           "id": "9",
@@ -194,14 +240,55 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO proposal_decisions (rfp_id, client_name, decision, decided_at) VALUES ('{{ $json.rfp_id }}', '{{ $json.client_name }}', '{{ $json.query.decision }}', NOW());",
-        "options": {}
+        "query": "INSERT INTO proposal_decisions (rfp_id, client_name, decision, decided_at) VALUES ($1, $2, $3, NOW());",
+        "options": {
+          "queryReplacement": "={{ [$node['Code: Format Proposal'].json.rfp_id, $node['Code: Format Proposal'].json.client_name, 'reject'] }}"
+        }
       },
       "id": "j0k1l2m3-0000-4444-8888-000000000010",
-      "name": "PostgreSQL: Log Decision",
+      "name": "PostgreSQL: Log Rejection",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1780, 480],
+      "position": [
+        1780,
+        520
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "4",
+          "name": "PostgreSQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Convert the Markdown draft into safe, printable HTML without executing embedded HTML.\nconst proposal = $node['Code: Format Proposal'].json;\nconst escapeHtml = (value) => String(value)\n  .replaceAll('&', '&amp;')\n  .replaceAll('<', '&lt;')\n  .replaceAll('>', '&gt;')\n  .replaceAll('\"', '&quot;')\n  .replaceAll(\"'\", '&#039;');\n\nconst escaped = escapeHtml(proposal.proposal_markdown);\nconst formatted = escaped\n  .replace(/^### (.+)$/gm, '<h3>$1</h3>')\n  .replace(/^## (.+)$/gm, '<h2>$1</h2>')\n  .replace(/^# (.+)$/gm, '<h1>$1</h1>')\n  .replace(/^[-*] (.+)$/gm, '<li>$1</li>')\n  .replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')\n  .replace(/\\n/g, '<br>');\n\nconst pdfHtml = `<!doctype html><html><head><meta charset=\"utf-8\"><style>\nbody{font-family:Arial,sans-serif;color:#172033;line-height:1.55;margin:42px}\nh1,h2,h3{color:#3157d5;margin-top:24px}li{margin-left:18px}\n.meta{color:#65708a;font-size:12px;border-bottom:1px solid #dfe5f2;padding-bottom:12px}\n</style></head><body><div class=\"meta\">RFP ${escapeHtml(proposal.rfp_id)} · Generated ${escapeHtml(proposal.generated_at)}</div>${formatted}</body></html>`;\n\nreturn [{ json: { ...proposal, pdf_html: pdfHtml } }];"
+      },
+      "id": "j0k1l2m3-aaaa-4444-8888-000000000011",
+      "name": "Code: Build PDF HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO proposal_decisions (rfp_id, client_name, decision, decided_at) VALUES ($1, $2, $3, NOW());",
+        "options": {
+          "queryReplacement": "={{ [$node['Code: Format Proposal'].json.rfp_id, $node['Code: Format Proposal'].json.client_name, 'approve'] }}"
+        }
+      },
+      "id": "j0k1l2m3-bbbb-4444-8888-000000000012",
+      "name": "PostgreSQL: Log Approval",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2440,
+        320
+      ],
       "credentials": {
         "postgres": {
           "id": "4",
@@ -248,17 +335,6 @@
       "main": [
         [
           {
-            "node": "Wait: Approval Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Wait: Approval Webhook": {
-      "main": [
-        [
-          {
             "node": "Slack: Request Approval",
             "type": "main",
             "index": 0
@@ -267,6 +343,17 @@
       ]
     },
     "Slack: Request Approval": {
+      "main": [
+        [
+          {
+            "node": "Wait: Approval Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait: Approval Webhook": {
       "main": [
         [
           {
@@ -281,14 +368,25 @@
       "main": [
         [
           {
-            "node": "HTTP Request: Generate PDF",
+            "node": "Code: Build PDF HTML",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "PostgreSQL: Log Decision",
+            "node": "PostgreSQL: Log Rejection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build PDF HTML": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request: Generate PDF",
             "type": "main",
             "index": 0
           }
@@ -300,6 +398,17 @@
         [
           {
             "node": "Gmail: Send to Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail: Send to Client": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL: Log Approval",
             "type": "main",
             "index": 0
           }
