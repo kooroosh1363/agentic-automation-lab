@@ -5,7 +5,9 @@
 
 ## Description
 
-This advanced reference workflow demonstrates a **Retrieval-Augmented Generation (RAG)** pipeline for B2B proposal operations. It retrieves approved templates, pricing tiers, and case studies from a PostgreSQL knowledge base to ground the draft and reduce unsupported model output. A Slack-based **Human-in-the-Loop Approval** step gates delivery, after which a third-party API can generate the PDF and trigger follow-up actions. The workflow is designed to reduce manual drafting effort, but actual time savings, accuracy, and cost must be measured with representative RFPs in a controlled pilot.
+This advanced reference workflow demonstrates a **grounded proposal-generation pipeline** for B2B sales operations. It performs exact, parameterized PostgreSQL retrieval of approved templates, pricing tiers, and case studies, then uses those records to constrain an AI-generated draft. A Slack-based **Human-in-the-Loop Approval** gate prevents delivery until a reviewer explicitly approves the proposal. Approved drafts are converted to HTML/PDF, attached to Gmail, and audited; rejected drafts are audited without being sent.
+
+> **Accuracy note:** the current retrieval is structured filtering, not semantic/vector search. Treat this as a reference implementation and complete an end-to-end pilot before production use.
 
 
 ## Nodes Used
@@ -18,17 +20,19 @@ This advanced reference workflow demonstrates a **Retrieval-Augmented Generation
 
 - **Code: Format Proposal**: Processes the AI output, adds metadata (timestamps, RFP IDs), and prepares the data for the approval stage.
 
-- **Wait: Approval Webhook**: Pauses the workflow and generates a unique callback URL, waiting for the human approver to make a decision.
+- **Slack: Request Approval**: Sends the Sales Manager a proposal preview plus Approve/Reject links generated from n8n's execution resume URL.
 
-- **Slack: Request Approval**: Sends an interactive message to the Sales Manager with a preview of the proposal and clickable "Approve" / "Reject" buttons linked to the Wait node's webhook.
+- **Wait: Approval Webhook**: Runs after the Slack notification and pauses until the reviewer opens one of the decision links.
 
 - **IF: Check Approval**: Evaluates the decision returned by the webhook (Approve vs. Reject).
 
-- **HTTP Request: Generate PDF**: Sends the approved Markdown content to a service like PDFShift or HTML2PDF to generate a professional, branded PDF document.
+- **Code: Build PDF HTML**: Escapes the model output and converts the reviewed Markdown into printable HTML.
 
-- **Gmail: Send to Client**: Delivers the final PDF proposal to the client with a personalized, professional email.
+- **HTTP Request: Generate PDF**: Sends the approved HTML to the configured PDF service and stores the response as binary property `data`.
 
-- **PostgreSQL: Log Decision**: Records the final decision (Approved/Rejected) and timestamp in an audit table for compliance and tracking.
+- **Gmail: Send to Client**: Delivers the generated PDF as a real binary attachment named by the configured email service.
+
+- **PostgreSQL: Log Approval / Log Rejection**: Uses parameterized SQL to record both outcomes in the audit table.
 
 
 ## Workflow Diagram
@@ -44,13 +48,13 @@ This advanced reference workflow demonstrates a **Retrieval-Augmented Generation
 
 3. **AI Generation**: OpenAI uses the retrieved data (not just its pre-trained knowledge) to draft a highly specific, accurate proposal in Markdown format.
 
-4. **Human-in-the-Loop**: The draft is sent to the Sales Manager via Slack. The workflow pauses (Wait node) until the manager clicks "Approve" or "Reject".
+4. **Human-in-the-Loop**: Slack receives the review message first; the workflow then pauses until the manager chooses Approve or Reject.
 
-5. **Document Conversion**: Upon approval, the Markdown is sent to a PDF generation API to create a polished, ready-to-sign document.
+5. **Approved path**: The draft is escaped, converted to printable HTML, rendered as a PDF binary, attached to Gmail, sent, and logged as approved.
 
-6. **Delivery**: The PDF is emailed directly to the client.
+6. **Rejected path**: No client email is sent; the rejection is logged immediately.
 
-7. **Audit**: The decision and outcome are logged in the database for future reference and performance tracking.
+7. **Audit**: Both outcomes use parameterized SQL and retain the original RFP metadata.
 
 
 ## How to Use
@@ -67,7 +71,11 @@ This advanced reference workflow demonstrates a **Retrieval-Augmented Generation
 
 6. Verify the Slack message appears and test the approval links.
 
-7. Activate the workflow for production use.
+7. Inspect the execution data to confirm that the PDF binary property is `data` and that Gmail receives it as an attachment.
+
+8. Run negative tests: missing client fields, no knowledge-base match, rejected proposal, PDF service failure, and email failure.
+
+9. Only activate after credentials, callback URLs, retention rules, access controls, and error handling have been reviewed for your environment.
 
 
 ## Prerequisites
@@ -143,7 +151,19 @@ This advanced reference workflow demonstrates a **Retrieval-Augmented Generation
 
    - Configure the HTTP Request node with your chosen PDF generation API endpoint and key.
 
-4. **Activation**: Save and activate the workflow to generate the production Webhook and Approval Callback URLs.
+4. **Validation before activation**: Import the workflow, replace placeholder credentials/channel IDs, verify the PDF API contract, and run the test matrix below.
+
+
+## Validation Checklist
+
+- Slack notification is sent **before** the execution pauses.
+- Approve resumes the execution and Reject never reaches PDF/Gmail.
+- The PDF service returns a binary file in property `data`.
+- Gmail includes the binary PDF attachment.
+- Both decisions create exactly one audit row.
+- Apostrophes and SQL-like text in form fields do not alter either query.
+- Missing required client fields stop the workflow with a clear error.
+- No unsupported pricing or case-study claim is introduced during generation.
 
 
 ## Credentials Required
@@ -185,7 +205,7 @@ This advanced reference workflow demonstrates a **Retrieval-Augmented Generation
 
 ## Notes
 
-- **RAG Importance**: The Retrieval step is critical. Without it, the AI will "hallucinate" pricing and case studies. Always ensure the Knowledge Base is kept up-to-date.
+- **Grounding limitation**: Exact PostgreSQL filtering reduces unsupported output but does not guarantee factual accuracy. Keep the knowledge base current, require human approval, and validate generated claims.
 
 - **Interactive Approval**: The `Wait` node in n8n is powerful but requires the workflow to remain active. For long-running approvals (days/weeks), consider using a database state machine triggered by a separate Webhook instead of a long-running Wait node.
 
@@ -198,9 +218,9 @@ This advanced reference workflow demonstrates a **Retrieval-Augmented Generation
 
 - **AI Hallucinations**: If the proposal contains fake pricing or case studies, check the PostgreSQL query. Ensure it's returning the correct data and that the OpenAI prompt explicitly instructs it to "ONLY use the provided knowledge base data."
 
-- **Slack Buttons Not Working**: Ensure the Webhook URLs in the Slack message are correctly formatted and that the `Wait` node is configured to listen for the correct query parameters (`?decision=approve`).
+- **Approval links not working**: Confirm that `Slack: Request Approval` runs before `Wait: Approval Webhook`, the message uses `$execution.resumeUrl`, the workflow is active, and the public n8n webhook base URL is configured correctly.
 
-- **PDF Generation Fails**: Check the API documentation of your PDF service. Some require HTML input instead of Markdown. You may need to add a Markdown-to-HTML conversion step in the Code node.
+- **PDF generation fails**: Confirm the service accepts the HTML payload and returns a file. The HTTP node must write the response to binary property `data`, which is the property configured in Gmail attachments.
 
 - **Long-Running Wait Timeouts**: If the approval takes too long, the n8n execution might time out. For production, implement a "Callback Webhook" pattern where the Slack button hits a separate Webhook that updates a database status, rather than relying on a single long-running execution.
 
