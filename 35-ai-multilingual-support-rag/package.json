@@ -1,0 +1,15 @@
+{
+  "name": "ai-multilingual-support-rag-reference",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:workflow": "node scripts/build-workflow.mjs",
+    "validate:workflow": "node tests/validate-workflow.mjs",
+    "test": "npm run build:workflow && npm run validate:workflow && node --test tests/*.test.mjs",
+    "audit:start": "node scripts/audit-server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
