@@ -1,27 +1,16 @@
-# Environment Variables
 .env
 .env.local
 .env.production
-
-# OS files
+data/
+logs/
+*.log
+node_modules/
 .DS_Store
 Thumbs.db
-
-# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# Logs
-logs/
-*.log
-npm-debug.log*
-
-# Node modules
-node_modules/
-
-# Python
 __pycache__/
 *.pyc
 venv/
