@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const root = resolve(import.meta.dirname, '..');
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const workflowText = await readFile(resolve(root, 'workflows', 'workflow.json'), 'utf8');
 const workflow = JSON.parse(workflowText);
 const envText = await readFile(resolve(root, '.env.example'), 'utf8');
