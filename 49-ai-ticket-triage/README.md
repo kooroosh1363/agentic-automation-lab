@@ -234,6 +234,12 @@ The webhook acknowledges accepted transport with HTTP `202`; the durable ticket 
 
 See [threat model](docs/threat-model.md) and [engineering evidence](docs/engineering-evidence.md).
 
+## Engineering Evidence
+
+- [Business problem, architecture, data flow, test cases, failure behavior, security, trade-offs, and production-readiness evidence](docs/engineering-evidence.md)
+- [Sample input](examples/sample-input.json) and [sample output](examples/sample-output.json)
+- [Machine-readable test and failure scenarios](tests/test-cases.json)
+
 ## Production-readiness boundary
 
 This repository is a **production-oriented reference implementation**, not a turnkey production system. Before live rollout, add:
