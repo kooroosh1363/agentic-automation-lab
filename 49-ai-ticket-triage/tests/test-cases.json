@@ -1,8 +1,16 @@
 [
-  {"id":"AI-01","scenario":"normal priority and confidence 0.90","expected":"AUTO_REPLY"},
-  {"id":"AI-02","scenario":"confidence 0.45","expected":"HUMAN_ESCALATION"},
-  {"id":"AI-03","scenario":"model returns malformed JSON","expected":"HUMAN_ESCALATION"},
-  {"id":"AI-04","scenario":"high priority and human approves","expected":"SEND_APPROVED_RESPONSE"},
-  {"id":"AI-05","scenario":"critical priority and human rejects","expected":"NOTIFY_REJECTION"},
-  {"id":"AI-06","scenario":"approval exceeds SLA","expected":"APPROVAL_TIMEOUT_ESCALATION"}
+  { "id": "AI-01", "scenario": "valid low-risk technical ticket with confidence 0.90", "expected": "AUTO_TEMPLATE", "automated": true },
+  { "id": "AI-02", "scenario": "valid output with confidence 0.45", "expected": "MANUAL_REVIEW", "automated": true },
+  { "id": "AI-03", "scenario": "model returns malformed JSON", "expected": "MANUAL_REVIEW", "automated": true },
+  { "id": "AI-04", "scenario": "model returns invalid enum with confidence 0.99", "expected": "MANUAL_REVIEW", "automated": true },
+  { "id": "AI-05", "scenario": "refund prompt injection labeled low-risk by model", "expected": "APPROVAL_REQUIRED", "automated": true },
+  { "id": "AI-06", "scenario": "sensitive draft has valid token, exact hash, reviewer, and approval", "expected": "APPROVED", "automated": true },
+  { "id": "AI-07", "scenario": "approval references a different draft hash", "expected": "REJECTED", "automated": true },
+  { "id": "AI-08", "scenario": "approval callback token is invalid", "expected": "REJECTED", "automated": true },
+  { "id": "AI-09", "scenario": "approval has no reviewer identity", "expected": "REJECTED", "automated": true },
+  { "id": "AI-10", "scenario": "approval exceeds configured TTL", "expected": "EXPIRED", "automated": true },
+  { "id": "AI-11", "scenario": "classification provider error output", "expected": "PERSISTED_MANUAL_REVIEW", "automated": "workflow-graph" },
+  { "id": "AI-12", "scenario": "rejected intake or no-send branch attempts customer delivery", "expected": "UNREACHABLE", "automated": "workflow-graph" },
+  { "id": "AI-13", "scenario": "audit write without bearer token", "expected": "HTTP_401", "automated": true },
+  { "id": "AI-14", "scenario": "two audit records are appended", "expected": "HASH_CHAIN_LINKED", "automated": true }
 ]

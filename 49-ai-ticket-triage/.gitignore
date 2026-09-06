@@ -1,13 +1,13 @@
-# Environment variables (NEVER commit secrets)
 .env
-
-# Logs
+.env.local
+.env.production
+data/
+logs/
 *.log
-
-# OS files
+node_modules/
 .DS_Store
 Thumbs.db
-
-# Editor folders
 .vscode/
 .idea/
+*.swp
+*.swo

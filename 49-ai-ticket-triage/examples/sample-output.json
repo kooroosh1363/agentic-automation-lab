@@ -4,7 +4,15 @@
   "category": "billing",
   "sentiment": "negative",
   "confidence": 0.89,
-  "sensitive": true,
   "aiOutputValid": true,
-  "route": "DRAFT_AND_HUMAN_APPROVAL"
+  "sensitive": true,
+  "riskReasons": [
+    "priority:high",
+    "category:billing",
+    "deterministic_keyword_policy",
+    "negative_sentiment"
+  ],
+  "route": "APPROVAL_REQUIRED",
+  "state": "TRIAGED",
+  "policyVersion": "triage-policy-v2"
 }

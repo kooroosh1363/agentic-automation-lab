@@ -1,4 +1,5 @@
 {
+  "event_id": "evt-ticket-001-v1",
   "ticket_id": "ticket-001",
   "subject": "Unexpected account charge",
   "message": "Please explain this charge before any refund is attempted.",

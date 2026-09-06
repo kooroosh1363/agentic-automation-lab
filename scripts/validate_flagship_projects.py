@@ -130,15 +130,43 @@ def validate_project_48() -> None:
 def validate_project_49() -> None:
     workflow = validate_workflow(ROOT / "49-ai-ticket-triage/workflows/ai-ticket-triage.json")
     parse_code = node(workflow, "Parse AI Output").get("parameters", {}).get("jsCode", "")
-    approval_code = node(workflow, "Read Approval").get("parameters", {}).get("jsCode", "")
-    if "aiOutputValid" not in parse_code or "confidence = parseError" not in parse_code:
-        fail("project 49 malformed AI output is not forced to safe confidence")
-    if "...original" not in approval_code or "approver" not in approval_code:
-        fail("project 49 approval does not preserve context and audit fields")
-    for source, target in [("Confident?", "Escalate Low Confidence"), ("Approved?", "Notify Rejection")]:
+    approval_code = node(workflow, "Validate Approval").get("parameters", {}).get("jsCode", "")
+    wait_parameters = node(workflow, "Wait for Approval").get("parameters", {})
+    safe_template_code = node(workflow, "Build Safe Template").get("parameters", {}).get("jsCode", "")
+    workflow_text = json.dumps(workflow)
+
+    for required in ["aiOutputValid", "invalid_ai_schema", "deterministic_keyword_policy"]:
+        if required not in parse_code:
+            fail(f"project 49 strict triage policy missing invariant: {required}")
+    for required in ["draftHash", "callback_token", "timingSafeEqual", "approvalReceipt"]:
+        if required not in approval_code:
+            fail(f"project 49 approval policy missing invariant: {required}")
+    if "SAFE_TEMPLATE" not in safe_template_code:
+        fail("project 49 low-risk automation is not bound to a safe template")
+    if not wait_parameters.get("limitWaitTime"):
+        fail("project 49 approval wait has no timeout")
+    if "YOUR_ERROR_WORKFLOW_ID" in workflow_text:
+        fail("project 49 contains a placeholder error workflow ID")
+
+    required_paths = [
+        ("AI Classify", "Parse AI Output"),
+        ("AI Classify", "Build Provider Failure"),
+        ("Generate Sensitive Draft", "Build Provider Failure"),
+        ("Manual Review Required?", "Normalize Manual Review"),
+        ("Normalize Manual Review", "Persist Manual Queue"),
+        ("Audit Auto Decision", "Send Safe Auto Reply"),
+        ("Approval Granted?", "Send Approved Response"),
+        ("Approval Granted?", "Persist No-Send State"),
+    ]
+    for source, target in required_paths:
         if not has_edge(workflow, source, target):
-            fail(f"project 49 missing safe path: {source} -> {target}")
-    validate_workflow(ROOT / "49-ai-ticket-triage/workflows/triage-error-handler.json")
+            fail(f"project 49 missing controlled path: {source} -> {target}")
+
+    error_workflow = validate_workflow(ROOT / "49-ai-ticket-triage/workflows/triage-error-handler.json")
+    if not has_edge(error_workflow, "Format Redacted Error", "Persist Error Receipt"):
+        fail("project 49 error receipt is not persisted")
+    if not has_edge(error_workflow, "Persist Error Receipt", "Alert Slack"):
+        fail("project 49 error alert occurs before durable persistence")
 
 
 def validate_project_50() -> None:
