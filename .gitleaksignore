@@ -1,0 +1,2 @@
+# Historical false positive: a clearly named synthetic test fixture, never a credential.
+c8bef8a62748bdcf470bc88af8d1e5855ad3989c:49-ai-ticket-triage/tests/policy.test.mjs:generic-api-key:17
