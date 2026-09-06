@@ -138,7 +138,7 @@ def validate_project_49() -> None:
     for required in ["aiOutputValid", "invalid_ai_schema", "deterministic_keyword_policy"]:
         if required not in parse_code:
             fail(f"project 49 strict triage policy missing invariant: {required}")
-    for required in ["draftHash", "callbackToken", "timingSafeEqual", "approvalReceipt"]:
+    for required in ["draftHash", "callback_token", "timingSafeEqual", "approvalReceipt"]:
         if required not in approval_code:
             fail(f"project 49 approval policy missing invariant: {required}")
     if "SAFE_TEMPLATE" not in safe_template_code:
