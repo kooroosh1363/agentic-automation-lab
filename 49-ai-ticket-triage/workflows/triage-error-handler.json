@@ -1,23 +1,65 @@
 {
-  "name": "Triage Error Handler",
+  "name": "49-Triage-Error-Handler",
   "nodes": [
     {
       "parameters": {},
-      "id": "error-trigger",
+      "id": "49-error-trigger",
       "name": "Error Trigger",
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
-      "position": [-680, 300]
+      "position": [
+        0,
+        300
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const error = $input.item.json;\nconst workflow = error.workflow || {};\nconst execution = error.execution || {};\n\nreturn [{ json: {\n  severity: 'CRITICAL',\n  pipeline: workflow.name || 'Unknown',\n  errorMessage: execution.error?.message || 'Unknown error',\n  failedNode: execution.lastNodeExecuted || 'Unknown',\n  timestamp: new Date().toISOString()\n}}];"
+        "jsCode": "const input = $input.first().json;\nconst execution = input.execution || {};\nconst workflow = input.workflow || {};\nconst failedNode = String(execution.lastNodeExecuted || 'unknown').slice(0, 160);\nconst raw = String(execution.error?.message || 'Unknown workflow failure');\nconst redacted = raw\n  .replace(/Bearer\\s+[A-Za-z0-9._-]+/gi, 'Bearer [REDACTED]')\n  .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi, '[REDACTED_EMAIL]')\n  .slice(0, 500);\nconst severity = /send|reply|approval/i.test(failedNode) ? 'CRITICAL' : 'ERROR';\nreturn [{ json: {\n  eventType: 'workflow_failure', ticketId: 'execution-' + String(execution.id || Date.now()),\n  executionId: String(execution.id || 'unknown'), workflow: String(workflow.name || 'unknown'),\n  failedNode, severity, errorMessage: redacted, occurredAt: new Date().toISOString()\n} }];"
       },
-      "id": "format-error",
-      "name": "Format Error",
+      "id": "49-format-error",
+      "name": "Format Redacted Error",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-460, 300]
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AUDIT_SINK_URL.replace(/\\/$/, \"\") + \"/events\" }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.AUDIT_SINK_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "49-persist-error",
+      "name": "Persist Error Receipt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500
     },
     {
       "parameters": {
@@ -25,33 +67,73 @@
         "url": "={{ $env.SLACK_WEBHOOK_URL }}",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ text: `🚨 AI TRIAGE FAILURE: '${$json.pipeline}' failed at '${$json.failedNode}'. Error: ${$json.errorMessage}` }) }}",
-        "options": {}
+        "jsonBody": "={{ { text: $('Format Redacted Error').item.json.severity + ' — AI TRIAGE FAILURE\\nWorkflow: ' + $('Format Redacted Error').item.json.workflow + '\\nNode: ' + $('Format Redacted Error').item.json.failedNode + '\\nExecution: ' + $('Format Redacted Error').item.json.executionId + '\\nError: ' + $('Format Redacted Error').item.json.errorMessage } }}",
+        "options": {
+          "timeout": 10000
+        }
       },
-      "id": "alert-slack",
+      "id": "49-alert-error",
       "name": "Alert Slack",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [-240, 300]
-    },
-    {
-      "parameters": {
-        "jsCode": "console.log('TRIAGE ERROR LOG:', JSON.stringify($input.item.json, null, 2));\nreturn [{ json: { logged: true, timestamp: new Date().toISOString() } }];"
-      },
-      "id": "log-error",
-      "name": "Log Error",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [-20, 300]
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500
     }
   ],
   "connections": {
-    "Error Trigger": { "main": [[{ "node": "Format Error", "type": "main", "index": 0 }]] },
-    "Format Error": { "main": [[{ "node": "Alert Slack", "type": "main", "index": 0 }]] },
-    "Alert Slack": { "main": [[{ "node": "Log Error", "type": "main", "index": 0 }]] }
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format Redacted Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Redacted Error": {
+      "main": [
+        [
+          {
+            "node": "Persist Error Receipt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persist Error Receipt": {
+      "main": [
+        [
+          {
+            "node": "Alert Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all"
+  },
   "staticData": null,
-  "tags": [],
-  "triggerCount": 0
+  "tags": [
+    {
+      "name": "Error Handling"
+    },
+    {
+      "name": "Auditable"
+    }
+  ],
+  "triggerCount": 1,
+  "versionId": "triage-error-handler-v2"
 }
