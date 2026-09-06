@@ -1,55 +1,68 @@
-# Project 49 Engineering Evidence
+# Project 49 engineering evidence
 
-## Business Problem
+## Design objective
 
-Support teams need faster triage without allowing an LLM to take unsafe customer-facing actions. This workflow automates low-risk, high-confidence cases and requires human control when confidence is low or impact is sensitive.
+Reduce routine support workload without treating LLM confidence or fluent text as authority to perform customer-facing actions. The design prioritizes bounded automation, explicit abstention, exact-draft approval, durable state, and inspectable failure behavior.
 
-## Architecture
+## Implemented controls
 
-`Webhook -> normalize -> AI classify -> schema validation -> confidence gate -> sensitivity gate -> auto reply or draft/approval/rejection`
+| Risk | Implementation evidence |
+|---|---|
+| Unauthenticated intake | `X-Triage-Secret` timing-safe validation |
+| Malformed payload | Required fields, bounded sizes, email and identifier validation |
+| Unnecessary model PII | Email, phone, and payment-number redaction before model calls |
+| Prompt injection | Ticket explicitly marked as untrusted plus deterministic downstream policy |
+| Invalid AI schema | All enums and confidence range must be valid; otherwise manual review |
+| Arbitrary confidence | Configurable threshold and explicit non-calibration warning |
+| Misclassified sensitive ticket | Independent category, keyword, priority, and sentiment rules |
+| Provider failure | Both LLM error outputs connect to persisted manual review |
+| Hallucinated auto response | Automatic path uses bounded templates, not generated factual text |
+| Unreviewed sensitive response | Exact-draft hash, HMAC callback, reviewer, expiry, no-send branch |
+| Infinite wait | Wait node has configurable bounded TTL |
+| Duplicate delivery | Action-specific idempotency keys; local adapter tests replay/conflict behavior |
+| Empty reply | Local adapter rejects empty replies; workflow templates/drafts validate body |
+| Lost manual escalation | Ticket state is persisted before Slack notification |
+| Weak error log | Authenticated append-only hash-chain sink; persistence before alert |
+| Secret leakage in incidents | Common bearer tokens and email addresses are redacted and messages bounded |
 
-## Data Flow
+## Fail-closed invariants
 
-The ticket is normalized to a stable contract. The model returns priority, category, sentiment, and confidence. Output is allowlisted and confidence is clamped to zero-to-one. Invalid JSON is assigned confidence zero, forcing escalation. High/critical tickets require approval; rejected drafts follow an explicit rejection path.
+1. Invalid intake cannot reach a model or customer-send node.
+2. Invalid, malformed, low-confidence, or provider-failed classification enters the manual queue.
+3. Deterministic sensitive policy overrides a low-risk model label.
+4. Free-form LLM content is never used by the automatic low-risk branch.
+5. A sensitive draft cannot reach delivery without a valid approval receipt for the exact hash.
+6. Rejected and expired approval paths cannot reach either send node.
+7. Decision audit persistence occurs before protected delivery.
+8. A failed external call is not converted into a successful response.
 
-## Test Cases
+These are checked by unit tests and workflow-graph assertions. They are architecture guarantees within the reference code, not claims about an unconfigured deployment.
 
-See [`../tests/test-cases.json`](../tests/test-cases.json): confident low-risk response, low confidence, malformed model output, sensitive approval, sensitive rejection, and approval timeout.
+## Evaluation evidence
 
-## Failure Scenarios
+`tests/test-cases.json` maps 14 scenarios to executable unit or graph checks. The suite currently reports nine Node test cases plus deterministic workflow validation. It covers input authentication, PII minimization, schema failures, confidence fallback, deterministic risk override, safe templates, approval integrity, approval timeout, append-only audit linkage, ticket API authentication, empty replies, and idempotency conflicts.
 
-- Invalid or incomplete AI output is treated as untrusted and escalated.
-- Low confidence never reaches an automatic customer response.
-- Sensitive actions require an auditable human decision.
-- Approval timeout must escalate rather than wait forever.
-- Provider timeout uses bounded retry and a safe manual fallback.
-
-## Security Considerations
-
-- Minimize and mask customer PII before model calls and logging.
-- Treat ticket content as data, not instructions, to reduce prompt-injection risk.
-- Allowlist output fields and validate response schema.
-- Authenticate approval callbacks and record approver identity, reason, and time.
-- Apply rate limits and abuse protection to the ticket webhook.
+The suite does not yet measure real-model classification quality. Before rollout, construct a versioned labeled corpus containing routine, ambiguous, financial, security, account, cancellation, legal, privacy, multilingual, adversarial, and out-of-distribution tickets. Report per-class precision/recall, escalation rate, unsafe-auto-action rate, latency, and cost.
 
 ## Trade-offs
 
-- A higher confidence threshold improves safety but raises human workload.
-- Priority-based sensitivity is explainable but should become a policy engine for refunds, legal, security, and account deletion.
-- HITL reduces unsafe actions but adds latency and operational ownership.
-- Model confidence is not calibrated probability; evaluation data is required.
+- Treating billing, account, cancellation, negative sentiment, and security as sensitive increases human workload but reduces unsafe automation.
+- Templates provide less personalization than generated replies but materially reduce unsupported claims.
+- Local append-only files are transparent and free for demonstration; production needs protected storage, backups, independent verification, and retention controls.
+- HMAC protects callback integrity, but reviewer identity remains asserted until integrated with SSO or verified Slack actions.
+- Retry improves transient reliability but cannot replace provider circuit breaking and operational monitoring.
+- A threshold of `0.70` is an initial configuration, not scientific proof of correctness.
 
-## Production Readiness
+## Reproducibility
 
-Status: **safe-AI reference architecture**. Before production add a labeled evaluation set, confidence calibration, approval SLA and timeout, authenticated callbacks, prompt-injection tests, PII policy, audit storage, provider fallback, and response-quality monitoring.
+`scripts/build-workflows.mjs` generates both importable workflow JSON files from version-controlled policy functions. CI regenerates them, validates all nodes and connections, checks critical graph invariants, and fails on drift. The project has no third-party Node dependencies.
 
-## Sample Input and Output
+## Honest readiness statement
 
-- [`../examples/sample-input.json`](../examples/sample-input.json)
-- [`../examples/sample-output.json`](../examples/sample-output.json)
+Status: **production-oriented reference implementation**.
 
-## Interview Defense Notes
+The repository demonstrates enforceable trust boundaries and failure behavior. It still requires deployment-specific n8n import validation, verified human identity, a production ticketing database, organization-specific policies, evaluation data, DLP, tenant isolation, monitoring, and disaster recovery before handling live customer traffic.
 
-**60-second answer:** I designed the workflow around risk, not only model capability. Malformed or low-confidence output is escalated. High-impact tickets produce a draft and require a recorded human decision. Only low-risk, sufficiently confident tickets receive an automatic response.
+## Interview defense
 
-Do not describe `0.7` as scientifically optimal. It is an initial threshold to tune against precision, recall, escalation rate, unsafe-action rate, and the business cost of each error type.
+**60-second explanation:** I did not authorize customer actions from model confidence alone. The model supplies a strict classification proposal. Invalid or uncertain output becomes persisted manual work, while deterministic rules override the model for sensitive categories and phrases. Low-risk automation uses controlled templates. Sensitive LLM drafts are hashed and bound to a signed, expiring approval callback; the decision is stored before delivery. External writes are authenticated, retried, time-bounded, and idempotent, and failures are recorded before alerts are sent.
