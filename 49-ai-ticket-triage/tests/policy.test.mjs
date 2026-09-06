@@ -14,7 +14,7 @@ import {
 } from '../src/policy.mjs';
 
 const webhookSecret = 'webhook-secret-at-least-32-characters';
-const signingSecret = 'approval-secret-at-least-32-characters';
+const testSigningMaterial = 'a'.repeat(40);
 const input = {
   headers: { 'x-triage-secret': webhookSecret },
   body: {
@@ -80,14 +80,14 @@ test('only valid, low-risk, high-confidence tickets receive a safe template', ()
 
 test('approval is bound to token, exact draft hash, reviewer, and expiry', () => {
   const ticket = classifyDecision(JSON.stringify({ priority: 'high', category: 'account', sentiment: 'neutral', confidence: 0.92 }), validateIntake(input, webhookSecret), 0.7);
-  const pending = prepareApproval(ticket, { subject: 'Review', body: 'A specialist will verify this request.' }, signingSecret, 'exec-7', 4);
+  const pending = prepareApproval(ticket, { subject: 'Review', body: 'A specialist will verify this request.' }, testSigningMaterial, 'exec-7', 4);
   const body = { decision: 'approved', reviewer: 'reviewer-7', draft_hash: pending.draftHash, callback_token: pending.callbackToken };
   const now = new Date(Date.now() + 60_000);
-  assert.equal(validateApproval(pending, body, signingSecret, now).state, 'APPROVED');
-  assert.equal(validateApproval(pending, { ...body, draft_hash: '0'.repeat(64) }, signingSecret, now).state, 'REJECTED');
-  assert.equal(validateApproval(pending, { ...body, callback_token: '0'.repeat(64) }, signingSecret, now).state, 'REJECTED');
-  assert.equal(validateApproval(pending, { ...body, reviewer: '' }, signingSecret, now).state, 'REJECTED');
-  assert.equal(validateApproval(pending, body, signingSecret, new Date(Date.now() + 5 * 3600000)).state, 'EXPIRED');
+  assert.equal(validateApproval(pending, body, testSigningMaterial, now).state, 'APPROVED');
+  assert.equal(validateApproval(pending, { ...body, draft_hash: '0'.repeat(64) }, testSigningMaterial, now).state, 'REJECTED');
+  assert.equal(validateApproval(pending, { ...body, callback_token: '0'.repeat(64) }, testSigningMaterial, now).state, 'REJECTED');
+  assert.equal(validateApproval(pending, { ...body, reviewer: '' }, testSigningMaterial, now).state, 'REJECTED');
+  assert.equal(validateApproval(pending, body, testSigningMaterial, new Date(Date.now() + 5 * 3600000)).state, 'EXPIRED');
 });
 
 test('audit sink authenticates writes and creates a hash chain', async (context) => {
