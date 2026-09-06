@@ -1,0 +1,16 @@
+{
+  "name": "ai-ticket-triage-reference",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:workflow": "node scripts/build-workflows.mjs",
+    "validate:workflow": "node tests/validate-workflows.mjs",
+    "test": "npm run build:workflow && npm run validate:workflow && node --test tests/*.test.mjs",
+    "audit:start": "node scripts/audit-server.mjs",
+    "ticket:start": "node scripts/ticket-server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
