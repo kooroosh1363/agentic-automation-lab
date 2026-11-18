@@ -1,196 +1,245 @@
-# 24 - HVAC Field Service Orchestration & Dynamic Dispatch
+# 24 — HVAC Field Service Orchestration & Dynamic Dispatch
 
 ![Level](https://img.shields.io/badge/Level-Advanced-6F42C1)
+![Platform](https://img.shields.io/badge/Platform-n8n%20%7C%20PostgreSQL-orange)
+![Workflow](https://img.shields.io/badge/Workflow-Inactive-lightgrey)
 
+An n8n reference workflow for HVAC and appliance-repair field service. It receives a service request, uses an LLM to structure the issue, retrieves active technicians from PostgreSQL, ranks eligible candidates with deterministic JavaScript, and routes the request either to calendar/SMS actions or to a human dispatcher.
 
-## Description
+> **Read before importing:** This repository contains a configurable portfolio/demo workflow, not a production-ready dispatch service. The workflow export includes placeholder credential references, sample destinations and a fixed next-day calendar slot. It is marked inactive. Do not activate it or send real customer data until the configuration, security controls and end-to-end behavior have been reviewed in a staging environment.
 
-This is an enterprise-oriented, multi-component n8n workflow designed for Field Service Management (FSM) in the HVAC and home appliance industry. It automates the entire dispatch lifecycle: from receiving a service request to assigning the optimal technician. The workflow uses AI to parse the issue, queries a database for active technicians, and runs a custom JavaScript scoring algorithm (incorporating the Haversine distance formula, skill matching, van inventory checks, and current workload). Based on the outcome, it dynamically calculates the service price, books a Google Calendar slot, sends an SMS confirmation via Twilio, or triggers a fallback alert to the dispatch manager if no suitable technician is found.
+## What problem does it solve?
 
+The nearest technician is not necessarily the right technician. A useful dispatch decision must consider skill fit, required parts, travel distance and current workload. This example separates probabilistic issue extraction from deterministic technician ranking:
 
-## Nodes Used
+- **AI extracts context:** device type, issue summary, required parts and urgency.
+- **PostgreSQL supplies operational facts:** active technicians, skills, coordinates, workload and van inventory.
+- **Code ranks candidates:** skill filtering, Haversine distance, parts availability and workload.
+- **Routing preserves human oversight:** automatic booking is allowed only when a technician is selected and all required parts are available; otherwise the request is sent to the dispatch fallback.
 
-- **Webhook**: Receives the incoming service request payload (customer details, address, coordinates, issue description).
-
-- **OpenAI**: Analyzes the unstructured issue description to extract `device_type`, `issue_summary`, `required_parts` (array), and `urgency` level in strict JSON format.
-
-- **PostgreSQL**: Fetches the list of active technicians, including their coordinates, skills, current workload, and van inventory.
-
-- **Code**: Executes a custom JavaScript algorithm to score each technician based on proximity, parts availability, and workload, then selects the best match and calculates a dynamic price.
-
-- **Switch**: Routes the workflow based on whether a suitable technician with available parts was found.
-
-- **Google Calendar**: Automatically reserves a service time slot in the assigned technician's calendar.
-
-- **Twilio**: Sends a personalized SMS confirmation to the customer with technician details and estimated price.
-
-- **Slack**: Acts as a fallback mechanism, alerting the dispatch manager if manual intervention is required (e.g., no matching technician or missing parts).
-
-
-## Workflow Diagram
+## Architecture
 
 ![Workflow Diagram](./screenshots/workflow-diagram.png)
 
+```text
+Service request
+    |
+    v
+Webhook --> OpenAI issue extraction
+                    |
+                    v
+             PostgreSQL technicians
+                    |
+                    v
+          Deterministic scoring (Code)
+                    |
+                    v
+             Dispatch decision
+               /          \
+      eligible + parts    fallback
+            |                |
+       Google Calendar      Slack
+            |
+          Twilio
+```
 
-## How It Works
+## Workflow components
 
-1. **Ingestion**: A POST request hits the Webhook with customer and issue data.
+| Node | Responsibility | Important configuration |
+| --- | --- | --- |
+| Webhook | Receives the service request via POST | Path: `hvac-service-request`; add authentication and input validation before exposure |
+| OpenAI | Extracts structured issue information | Configure a valid n8n OpenAI credential and validate the returned JSON schema |
+| PostgreSQL | Reads active technician records | Configure a least-privilege database credential |
+| Code | Filters and scores technicians | Uses the technicians returned by PostgreSQL; see scoring details below |
+| Switch | Routes based on technician assignment and parts availability | Verify both boolean and object conditions in your n8n version |
+| Google Calendar | Creates a service event on the success path | Replace the primary calendar and fixed sample time logic |
+| Twilio | Sends customer confirmation | Replace sample phone numbers and map a consented customer number |
+| Slack | Alerts dispatch staff on fallback | Select your own workspace/channel and review PII in alert content |
 
-2. **AI Triage**: OpenAI parses the issue, identifying the device, required parts, and urgency.
+## Dispatch and scoring logic
 
-3. **Data Retrieval**: PostgreSQL returns an array of all active technicians and their current state.
+The Code node currently performs these steps:
 
-4. **Advanced Scoring (Code Node)**:
+1. Reads the original request from the Webhook node and validates that customer latitude and longitude are numeric.
+2. Parses the OpenAI response as JSON.
+3. Normalizes technician skills, required parts and van inventory for case-insensitive comparisons.
+4. Filters technicians to those whose skills include the extracted `device_type`.
+5. Calculates straight-line distance with the Haversine formula.
+6. Scores each candidate using the following weighted model:
 
-   - Calculates the geographical distance between the customer and each technician using the Haversine formula.
+| Factor | Weight | Current calculation |
+| --- | ---: | --- |
+| Proximity | 40% | `max(0, 100 - distance_km × 5)` |
+| Required parts | 40% | 100 if all required parts are present, otherwise 0 |
+| Workload | 20% | `max(0, 100 - current_load × 15)` |
 
-   - Checks if the technician's `van_inventory` contains all `required_parts`.
+Candidates are sorted by descending score, then by distance and technician ID for deterministic tie-breaking. The top-ranked candidate is selected. If no candidate matches the skill, or the selected candidate lacks a required part, the dispatch status is `MANUAL_REVIEW_REQUIRED`; otherwise it is `AUTO_DISPATCH_READY`.
 
-   - Applies a weighted scoring model: 40% Proximity, 40% Parts Availability, 20% Inverse Workload.
+**Important distinction:** parts availability affects ranking, but missing parts also block automatic dispatch. A technician with missing parts can still be the highest-ranked candidate and will then be sent to manual review.
 
-   - Selects the technician with the highest score.
+### Example price calculation
 
-   - Calculates a dynamic price: Base Price (based on urgency) + Travel Fee (distance-based) + Parts Fee.
+The current demo uses a simplified, hard-coded USD estimate:
 
-5. **Decision Routing**: The Switch node checks if a valid technician was assigned and parts are available.
+- Base price: $150 for `critical` urgency; $100 for other urgency values.
+- Travel fee: selected technician's straight-line distance × $1.50.
+- Parts fee: number of required parts × $25.
 
-6. **Success Path**: Google Calendar creates an event, and Twilio sends an SMS to the customer.
+`final_price_usd = base_price + travel_fee + parts_fee`
 
-7. **Fallback Path**: If no match is found, Slack notifies the dispatch manager for manual resolution or parts ordering.
+This is illustrative only. It is not connected to a real price book, tax rules, labor rates, supplier costs or customer-approved estimates. Do not present it as a binding quote.
 
+## Repository contents
 
-## How to Use
+| Path | Purpose |
+| --- | --- |
+| [workflow.json](workflow.json) | n8n workflow export |
+| [sql/init.sql](sql/init.sql) | PostgreSQL technician table and repeatable sample fixtures |
+| [examples/sample-input.json](examples/sample-input.json) | Example incoming service request |
+| [examples/sample-output.json](examples/sample-output.json) | Illustrative dispatch result |
+| [tests/test-cases.json](tests/test-cases.json) | Scenario inventory and expected outcomes |
+| [docs/engineering-evidence.md](docs/engineering-evidence.md) | Architecture rationale, security, trade-offs and interview notes |
+| [screenshots/workflow-diagram.png](screenshots/workflow-diagram.png) | Workflow diagram |
 
-1. Import the `workflow.json` file into your n8n instance.
-
-2. Set up the PostgreSQL database with the `technicians` table and sample data.
-
-3. Configure all required credentials (OpenAI, PostgreSQL, Google Calendar, Twilio, Slack).
-
-4. Test the workflow by sending a mock POST request to the Webhook URL.
-
-5. Monitor the execution to verify the scoring logic and routing.
-
-6. Activate the workflow for production use.
-
+The JSON test-case file is a **scenario/acceptance checklist**, not an automated test runner. The sample output is an example artifact, not proof that the workflow has passed an end-to-end run.
 
 ## Prerequisites
 
-- A running instance of n8n (Cloud or Self-hosted).
+- n8n Cloud or self-hosted n8n with compatible Webhook, OpenAI, PostgreSQL, Code, Switch, Google Calendar, Twilio and Slack nodes.
+- PostgreSQL database.
+- OpenAI API access.
+- Google Calendar OAuth2 access.
+- Twilio account and an authorized sender number.
+- Slack app/bot access to the dispatch channel.
+- A staging environment and test destinations before any live activation.
 
-- An active OpenAI API key.
+## Setup
 
-- A PostgreSQL database.
+### 1. Import and keep inactive
 
-- A Google Cloud project with Google Calendar API enabled.
+Import `workflow.json` into n8n. Keep it inactive. Review node-version warnings and inspect every node before connecting credentials.
 
-- A Twilio account with an active phone number.
+### 2. Create the technician table
 
-- A Slack workspace with a dedicated dispatch channel.
+Run the repository SQL fixture against a development database:
 
+```bash
+psql "$DATABASE_URL" -f sql/init.sql
+```
 
-## Setup Steps
+The script creates `technicians` with:
 
-1. **PostgreSQL Setup**: Create the `technicians` table and insert sample data:
+- `id`: technician identifier (primary key)
+- `name`: display name
+- `lat`, `lon`: technician coordinates
+- `skills`: PostgreSQL text array of supported device categories
+- `current_load`: non-negative workload count
+- `van_inventory`: PostgreSQL text array of available parts
+- `status`: `active` or `inactive`
+- `updated_at`: last fixture/update timestamp
 
-   ```sql
+The sample records are illustrative. Replace them with accurate, maintained operational data before evaluating dispatch quality.
 
-   CREATE TABLE technicians (
+### 3. Configure credentials
 
-       id VARCHAR(50) PRIMARY KEY,
+Create credentials inside n8n for OpenAI, PostgreSQL, Google Calendar, Twilio and Slack. Rebind the nodes to those credentials. The credential IDs/names embedded in an exported workflow are not portable secrets and should not be assumed to exist in another n8n instance.
 
-       name VARCHAR(100),
+Use a database account with only the permissions needed for technician lookup. Do not commit API keys, passwords, tokens or real customer records.
 
-       lat DECIMAL(9,6),
+### 4. Replace demo destinations and scheduling
 
-       lon DECIMAL(9,6),
+Before testing, inspect and replace all sample values in `workflow.json`, including:
 
-       skills TEXT[], -- e.g., {'AC', 'Heater'}
+- Twilio `fromNumber` and `toNumber` (the current export contains sample numbers).
+- Slack channel selection/ID.
+- Google Calendar attendee email.
+- Calendar start/end expressions (currently fixed relative to execution time, approximately tomorrow).
+- Any credential references that point to accounts from another n8n instance.
 
-       current_load INT,
+The current calendar expressions do **not** select a technician-specific availability slot or check for calendar conflicts. Implement availability lookup and collision handling before relying on bookings.
 
-       van_inventory TEXT[], -- e.g., {'freon', 'compressor'}
+### 5. Send a test request
 
-       status VARCHAR(20)
+The sample payload is available at [examples/sample-input.json](examples/sample-input.json). With the workflow running in test mode, send a POST request to the test webhook URL:
 
-   );
+```bash
+curl -X POST "$N8N_WEBHOOK_TEST_URL" \
+  -H "Content-Type: application/json" \
+  -d @examples/sample-input.json
+```
 
-   INSERT INTO technicians (id, name, lat, lon, skills, current_load, van_inventory, status)
+Use only fictional customer information and test phone/calendar/channel destinations. Inspect the output of each node, not just the final webhook response.
 
-   VALUES ('TECH-001', 'Sample Technician', 35.70, 51.40, '{"AC", "Heater"}', 2, '{"freon", "thermostat"}', 'active');
+### 6. Validate the outcomes
 
+Use [tests/test-cases.json](tests/test-cases.json) as a minimum manual acceptance checklist. Confirm that the actual workflow behavior matches each expected outcome. Do not infer that a scenario is implemented merely because it appears in the fixture list.
 
-Credentials: Add your OpenAI, PostgreSQL, Google Calendar (OAuth2), Twilio, and Slack credentials in n8n.
+## Sample request
 
-Node Configuration:
+```json
+{
+  "request_id": "req-hvac-001",
+  "customer_name": "Sample Customer",
+  "customer_address": "Example Service Area",
+  "customer_lat": 35.7005,
+  "customer_lon": 51.4012,
+  "issue_description": "The AC is running but not cooling; the thermostat appears normal."
+}
+```
 
-Update the Twilio node with your actual fromNumber and the customer's toNumber (mapped from the webhook).
+The workflow expects coordinates as numeric values and an issue description. In production, validate required fields, coordinate ranges, request size and phone-number format at the webhook boundary.
 
-Update the Google Calendar node with the correct calendar ID.
+## Known limitations and production gaps
 
-Adjust the scoring weights in the Code node if your business logic requires different priorities.
+The following items are not solved merely by importing the current workflow:
 
-Activation: Save and activate the workflow.
+1. **Webhook security:** the exported Webhook node does not show an authentication mechanism. Add authentication, rate limiting, payload validation and abuse protection before public exposure.
+2. **Idempotency:** `request_id` is passed through, but the workflow does not implement a durable duplicate-request check. The duplicate scenario in the test fixture is a target behavior, not an implemented guarantee.
+3. **Calendar availability:** the success path creates an event using a fixed relative time. It does not query technician availability or prevent overlapping bookings.
+4. **Technician-specific calendar:** the exported calendar configuration uses the primary calendar and a sample attendee; it is not dynamically mapped to the selected technician's actual calendar.
+5. **SMS mapping and consent:** the exported Twilio node contains sample phone numbers. Add validated customer contact mapping, consent/opt-out handling and localized message templates.
+6. **Inventory freshness:** van inventory is read from the technician table; no reservation, decrement or real-time stock reconciliation is implemented.
+7. **Distance accuracy:** Haversine distance is straight-line distance, not road distance or estimated travel time. Use a routing provider if dispatch depends on real journey time.
+8. **Scoring calibration:** the 40/40/20 weights and distance/load formulas are example assumptions. Backtest against real outcomes and monitor SLA, first-time-fix rate, travel time and technician utilization.
+9. **Pricing:** the USD calculation is illustrative and not connected to an approved price book or local currency/tax rules.
+10. **Resilience and observability:** implement provider retries, timeouts, dead-letter/manual recovery, structured logs, alerts and execution monitoring. Make external side effects idempotent.
+11. **AI validation:** treat model output as untrusted. Validate allowed device categories, urgency values and part identifiers against controlled vocabularies before scoring.
 
-Credentials Required
+The engineering rationale and recommended production work are documented in [Engineering Evidence](docs/engineering-evidence.md).
 
-OpenAI API: For GPT-4o structured data extraction.
+## Troubleshooting
 
-PostgreSQL API: Database connection details.
+| Symptom | Checks |
+| --- | --- |
+| AI JSON parse error | Inspect the actual OpenAI node output and ensure it matches the expected JSON structure |
+| No technician selected | Check the active technician query, skill labels and normalized device type |
+| Technician unexpectedly sent to fallback | Verify required-part names against `van_inventory` and inspect the selected candidate |
+| Invalid coordinate error | Send numeric latitude/longitude within valid geographic ranges |
+| PostgreSQL returns no rows | Verify connection, schema, table name, permissions and active sample records |
+| Calendar event is wrong | Replace the fixed date expressions and sample calendar/attendee settings |
+| SMS or Slack delivery fails | Verify credentials, sender permissions, destination format and channel access |
 
-Google Calendar OAuth2: For event creation.
+## Security and privacy
 
-Twilio API: Account SID and Auth Token.
+- Minimize customer personal data sent to the LLM; send only what is necessary for issue classification.
+- Do not include sensitive customer details in Slack alerts or execution logs unless operationally necessary and access-controlled.
+- Keep credentials in n8n's credential store or a managed secrets system.
+- Authenticate and rate-limit the webhook.
+- Restrict PostgreSQL access to the minimum required tables and operations.
+- Define retention and deletion policies for customer requests, addresses and execution data.
+- Obtain appropriate consent and comply with local rules for customer SMS notifications.
 
-Slack API: Bot User OAuth Token with chat:write permissions.
+## Suggested next improvements
 
-Use Cases
+- Add a request-id idempotency table and unique constraint before any booking or notification.
+- Add technician availability and calendar-conflict checks.
+- Connect parts to a live inventory/reservation service.
+- Replace straight-line distance with road travel time.
+- Move pricing into a versioned service price book.
+- Add schema validation and controlled vocabularies for AI extraction.
+- Build automated tests for scoring, routing, duplicate requests and failure recovery.
+- Add dispatch outcome metrics and periodically recalibrate the scoring model.
 
-HVAC & Plumbing Companies: Automating dispatch to reduce response times and fuel costs.
+## License
 
-Appliance Repair Services: Ensuring technicians arrive with the correct parts on the first visit (First-Time Fix Rate).
-
-IT Field Services: Dispatching specialized technicians for on-site hardware repairs.
-
-Customization Ideas
-
-Real-Time Traffic: Integrate Google Maps Distance Matrix API in the Code node or via an HTTP Request node to use actual driving time instead of straight-line distance.
-
-Customer Portal: Add a webhook response that returns a tracking link to the customer.
-
-Inventory Management: If parts are missing, automatically trigger an HTTP Request to a supplier's API to order the required parts before notifying the manager.
-
-Technician App: Replace Google Calendar with a custom mobile app API to push notifications directly to the technician's phone.
-
-Notes
-
-The Code node contains a mock array of technicians for demonstration purposes. In a production environment, you should map the $input.all() from the PostgreSQL node directly into the scoring algorithm.
-
-The Haversine formula in the Code node calculates straight-line distance. For urban dispatch, driving distance via a routing API is more accurate.
-
-The dynamic pricing model is a simplified example. Real-world pricing may require fetching official part prices from a database.
-
-Troubleshooting
-
-OpenAI JSON Parse Error: Ensure the system prompt strictly enforces JSON output. Check the responseFormat setting in the OpenAI node.
-
-Code Node Returns Null: Verify that the customer_lat and customer_lon are provided as numbers in the Webhook payload.
-
-Google Calendar Fails: Ensure the Google service account or OAuth user has "Make changes to events" permission on the target calendar.
-
-Twilio SMS Fails: Check that the destination phone number is in E.164 format (e.g., +15550100000) and that your Twilio account has sufficient balance.
-
-License
-
-This project is licensed under the MIT License.
-
-## Engineering Evidence
-
-The portfolio evidence for this project is intentionally separated from the setup guide:
-
-- [Business problem, architecture, data flow, security, trade-offs, and production readiness](docs/engineering-evidence.md)
-- [Sample input](examples/sample-input.json) and [sample output](examples/sample-output.json)
-- [Test and failure scenarios](tests/test-cases.json)
-- [Reproducible PostgreSQL technician schema and sample fixtures](sql/init.sql)
-
-The workflow now scores the technicians returned by PostgreSQL instead of a hard-coded technician list. The documentation clearly distinguishes implemented behavior from production follow-up work.
+This project is licensed under the MIT License. See the repository license file for the full terms.
